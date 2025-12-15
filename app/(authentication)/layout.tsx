@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { Logo } from "../components/logo";
+import { Logo } from "@components/logo";
+import { HomeBtn } from "@components/ui/home-btn";
+
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -11,8 +13,10 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+ 
   return (
-   <div className="min-h-screen flex items-center justify-center flex-col gap-8">
+   <div className="min-h-screen flex items-center justify-center flex-col gap-8 relative">
+    <HomeBtn />
     <Logo />
    {children}
    </div>
