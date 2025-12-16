@@ -1,55 +1,48 @@
 'use client';
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 
-interface AuthContextType {
-  user: { username: string; email: string; role: string } | null;
+import { tokenManager } from "@lib/token-manager";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+
+type AuthContextType = {
   token: string | null;
-  login: (token: string) => void;
-  logout: () => void;
-}
+  setToken: (token: string | null) => void;
+  isSignedIn: boolean;
+  setIsSignedIn: (val: boolean) => void;
+};
+
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<{ username: string; email: string; role: string } | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const router = useRouter();
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [isSignedIn, setIsSignedIn] = useState(false);
+  const [token, setTokenState] = useState<string | null>(null);
 
-  useEffect(() => {
-    const storedToken = localStorage.getItem('token');
-    if (storedToken) {
-      setToken(storedToken);
-      const payload = JSON.parse(atob(storedToken.split('.')[1]));
-      setUser({ username: payload.username, email: payload.email, role: payload.role });
+  useEffect(() =>
+  {
+    const stored = localStorage.getItem('token');
+    if (stored)
+    {
+      tokenManager.set(stored);
+      setTokenState(stored);
     }
   }, []);
 
-  const login = (token: string) => {
-    localStorage.setItem('token', token);
-    const payload = JSON.parse(atob(token.split('.')[1]));
-    setUser({ username: payload.username, email: payload.email, role: payload.role });
-    setToken(token);
-  };
+  const setToken = (token: string | null) => {
+    if (token) tokenManager.set(token);
+    else tokenManager.clear();
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    setUser(null);
-    setToken(null);
-    router.push('/authentication/signin');
-  };
+    setTokenState(token);
+  }
 
   return (
-    <AuthContext.Provider value={{ user, token, login, logout }}>
+    <AuthContext.Provider value={{  setIsSignedIn, token, setToken, isSignedIn:!!token }}>
       {children}
     </AuthContext.Provider>
   );
-};
+}
 
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+export function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
+}

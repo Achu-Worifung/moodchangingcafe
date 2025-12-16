@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends, HTTPException
 import bcrypt
 import jwt 
 import os
@@ -7,6 +7,7 @@ from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
 from psycopg2.errors import UniqueViolation
+from fastapi.security import OAuth2PasswordBearer
 
 from models.models import User, LoginData, AddItem
 from dbconfig import query, execute
@@ -27,6 +28,8 @@ salt = bcrypt.gensalt()
 SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")
 ALGORITHM = "HS256"
 
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 # Helper function to generate JWT token
 def create_token(username: str, email: str, role: str) -> str:
     payload = {
@@ -36,6 +39,16 @@ def create_token(username: str, email: str, role: str) -> str:
         # "exp": datetime.utcnow() + timedelta(days=1)
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+def verify_admin_role(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload.get("role") != "admin":
+            raise HTTPException(status_code=403, detail="Admin privileges required")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post('/api/auth/login')
 def login(data: LoginData):
@@ -73,3 +86,41 @@ def signup(data: User):
 @app.get('/api/cart/{user_id}')
 def get_cart(user_id: int):
     pass
+
+from pydantic import BaseModel
+
+# Define the Pydantic model for item input
+class Item(BaseModel):
+    sku: str
+    name: str
+    description: Optional[str] = None
+    unit_price: float = 0.00
+    quantity_in_stock: int = 0
+    tax_rate: float = 0.0
+    category_id: Optional[int] = None
+
+@app.post('/api/admin/additem')
+def add_item(item: Item, token: str = Depends(oauth2_scheme)):
+    verify_admin_role(token)
+    try:
+        # Check if the category exists if category_id is provided
+        if item.category_id is not None:
+            category = query("SELECT id FROM category WHERE id = %s", (item.category_id,))
+            if not category:
+                # Insert the category if it does not exist
+                execute(
+                    "INSERT INTO category (id, name) VALUES (%s, %s)",
+                    (item.category_id, f"Category-{item.category_id}")
+                )
+
+        # Insert the item into the database
+        execute(
+            """
+            INSERT INTO item (sku, name, description, unit_price, quantity_in_stock, tax_rate, category_id)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            """,
+            (item.sku, item.name, item.description, item.unit_price, item.quantity_in_stock, item.tax_rate, item.category_id)
+        )
+        return {"message": "Item added successfully"}
+    except Exception as e:
+        return {"error": str(e)}

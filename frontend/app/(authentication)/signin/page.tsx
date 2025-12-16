@@ -21,7 +21,7 @@ export default function CardDemo() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
-  const { login } = useAuth();
+  const { setToken } = useAuth();
   async function handleSubmit() {
     if (email === "" || password === "") {
       toast.error("Email and password are required.");
@@ -42,7 +42,7 @@ export default function CardDemo() {
     console.log(resData);
 
     // Use AuthProvider's login method to save the token
-    login(resData.token);
+    setToken(resData.token);
     toast.success("Login successful!");
     setTimeout(() => {
         router.push('/');

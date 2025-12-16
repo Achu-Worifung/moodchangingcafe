@@ -14,6 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { AuthProvider } from "@lib/auth-context";
 
 export default function AddItemPage() {
   const [loading, setLoading] = useState(false);
@@ -52,6 +53,7 @@ export default function AddItemPage() {
   };
 
   async function handleSubmit() {
+    setItemCategory('Food');
     if (
       itemName === "" ||
       !itemImage ||
@@ -59,6 +61,8 @@ export default function AddItemPage() {
       itemDescription === "" ||
       itemCategory === ""
     ) {
+      console.log('categories:', itemCategory);
+      console.log(itemName, itemImage, itemPrice, itemDescription, itemCategory, itemStock);
       toast.error("All fields are required.");
       return;
     }
@@ -75,8 +79,12 @@ export default function AddItemPage() {
     formData.append("itemDescription", itemDescription);
     formData.append("itemCategory", itemCategory);
     formData.append("itemStock", itemStock);
-    const response = await fetch("/api/admin/additem", {
+    const token = await authProvider.getToken();
+    const response = await fetch("http://127.0.0.1:8000/api/admin/additem", {
       method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
       body: formData,
     });
     if (response.ok) {

@@ -18,7 +18,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/auth-context';
 
 export default function SignupPage() {
-  const { login } = useAuth();
+  const { setToken } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -44,7 +44,7 @@ export default function SignupPage() {
     }
 
     // Use AuthProvider's login method to save the token
-    login(resData.token);
+    setToken(resData.token);
 
     toast.success("Signup successful! Redirecting...");
     setTimeout(() => {
