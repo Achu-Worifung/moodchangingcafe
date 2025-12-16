@@ -15,16 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from 'next/navigation'
+import { useAuth } from '@/lib/auth-context';
+
 export default function CardDemo() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const router = useRouter();
+  const { login } = useAuth();
   async function handleSubmit() {
     if (email === "" || password === "") {
       toast.error("Email and password are required.");
       return;
     }
-     const res = await fetch("/api/auth/login", {
+     const res = await fetch("http://127.0.0.1:8000/api/auth/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -35,6 +38,11 @@ export default function CardDemo() {
       toast.error("Invalid email or password.");
       return;
     }
+    const resData = await res.json();
+    console.log(resData);
+
+    // Use AuthProvider's login method to save the token
+    login(resData.token);
     toast.success("Login successful!");
     setTimeout(() => {
         router.push('/');

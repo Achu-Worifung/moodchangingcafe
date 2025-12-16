@@ -15,8 +15,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/lib/auth-context';
 
 export default function SignupPage() {
+  const { login } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -27,20 +29,26 @@ export default function SignupPage() {
       toast.error("All fields are required.");
       return;
     }
-    const res = await fetch("/api/auth/signup", {
+    const res = await fetch("http://127.0.0.1:8000/api/auth/signup", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ name, email, password }),
+      body: JSON.stringify({ "username": name, "email": email, "password": password }),
     });
+    const resData = await res.json();
     if (!res.ok) {
       toast.error("Signup failed. Please try again.");
+      console.log(resData);
       return;
     }
-    toast.success("Signup successful! Redirecting to login...");
+
+    // Use AuthProvider's login method to save the token
+    login(resData.token);
+
+    toast.success("Signup successful! Redirecting...");
     setTimeout(() => {
-      router.push('/signin');
+      router.push('/');
     }, 1000);
   }
 

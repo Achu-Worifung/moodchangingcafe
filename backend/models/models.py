@@ -7,7 +7,7 @@ class User(BaseModel):
     password: str
 
 class LoginData(BaseModel):
-    username: str
+    email: str
     password: str
     
 

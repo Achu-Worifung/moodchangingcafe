@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional
+from psycopg2.errors import UniqueViolation
 
 from models.models import User, LoginData, AddItem
 from dbconfig import query, execute
@@ -40,8 +41,8 @@ def create_token(username: str, email: str, role: str) -> str:
 def login(data: LoginData):
     try:
         user = query(
-            "SELECT username, email, password_hash, role FROM user_account WHERE username = %s",
-            (data.username,)
+            "SELECT username, email, password_hash, role FROM user_account WHERE email = %s",
+            (data.email,)
         )
 
         if user and bcrypt.checkpw(data.password.encode('utf-8'), user[0][2].encode('utf-8')):
@@ -64,8 +65,10 @@ def signup(data: User):
             (data.username, data.email, hashed_password.decode('utf-8'))
         )
         return {"message": "User created successfully", "token": create_token(data.username, data.email, "user")}
+    except UniqueViolation:
+        return {"error": "Username or email already exists."}
     except Exception as e:
-        return {"error": str(e)}
+        return {"error": f"Unexpected error: {str(e)}"}
 
 @app.get('/api/cart/{user_id}')
 def get_cart(user_id: int):
