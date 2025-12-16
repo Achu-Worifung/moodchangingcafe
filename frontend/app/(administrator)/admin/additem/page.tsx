@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Upload } from "lucide-react";
+import { Upload, X } from "lucide-react";
 import { toast } from "sonner";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
@@ -23,6 +23,34 @@ export default function AddItemPage() {
   const [itemDescription, setItemDescription] = useState("");
   const [itemCategory, setItemCategory] = useState("");
   const [itemStock, setItemStock] = useState("");
+  const [categories, setCategories] = useState([
+    "Beverages",
+    "Snacks",
+    "Desserts",
+    "Main Course",
+    "Appetizers",
+  ]);
+  const [newCategory, setNewCategory] = useState("");
+
+  const handleAddCategory = () => {
+    if (newCategory.trim() === "") {
+      toast.error("Category name cannot be empty.");
+      return;
+    }
+    if (categories.includes(newCategory)) {
+      toast.error("Category already exists.");
+      return;
+    }
+    setCategories([...categories, newCategory]);
+    setNewCategory("");
+    toast.success("Category added successfully.");
+  };
+
+  const handleDeleteCategory = (category: string) => {
+    setCategories(categories.filter((cat) => cat !== category));
+    toast.success("Category deleted successfully.");
+  };
+
   async function handleSubmit() {
     if (
       itemName === "" ||
@@ -34,7 +62,7 @@ export default function AddItemPage() {
       toast.error("All fields are required.");
       return;
     }
-    // validate proper data type 
+    // validate proper data type
     if (isNaN(Number(itemPrice)) || isNaN(Number(itemStock))) {
       toast.error("Price and stock must be numbers.");
       return;
@@ -65,13 +93,6 @@ export default function AddItemPage() {
     setLoading(false);
   }
 
-  const categories = [
-    "Beverages",
-    "Snacks",
-    "Desserts",
-    "Main Course",
-    "Appetizers",
-  ];
   return (
     <div className="min-h-screen flex flex-col items-center justify-start gap-6 p-8 max-w-lg mx-auto my-17.5 w-full">
       <h1 className="text-2xl font-light ">Add New Item</h1>
@@ -100,23 +121,46 @@ export default function AddItemPage() {
       <div className="w-full flex flex-col gap-4">
         <Label htmlFor="itemCategory">Item Category</Label>
         <Select>
-          <SelectTrigger className="w-full">
-            <input type="text" value={itemCategory}></input>
+          <SelectTrigger className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-ring">
+            <SelectValue placeholder="Select a category" />
           </SelectTrigger>
-          <SelectContent>
+
+          <SelectContent className="rounded-md border bg-popover shadow-md">
             <SelectGroup>
               {categories.map((category) => (
                 <SelectItem
                   key={category}
                   value={category}
                   onClick={() => setItemCategory(category)}
+                  className="flex items-center justify-between gap-2 pr-2"
                 >
-                  {category}
+                  <span className="truncate text-sm">{category}</span>
+
+                  {/* <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleDeleteCategory(category);
+                    }}
+                    className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus:opacity-100"
+                  >
+                    <X className="h-4 w-4" />
+                  </button> */}
                 </SelectItem>
               ))}
             </SelectGroup>
           </SelectContent>
         </Select>
+
+        <div className="flex gap-2 mt-2">
+          <Input
+            type="text"
+            placeholder="Add new category"
+            value={newCategory}
+            onChange={(e) => setNewCategory(e.target.value)}
+          />
+          <Button onClick={handleAddCategory}>Add</Button>
+        </div>
       </div>
       <div className="w-full flex flex-col gap-4">
         <Label htmlFor="itemPrice">Item Price</Label>
