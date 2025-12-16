@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { AuthProvider } from "@lib/auth-context";
+import { useAuth } from '@/lib/auth-context';
 
 export default function AddItemPage() {
   const [loading, setLoading] = useState(false);
@@ -31,7 +31,12 @@ export default function AddItemPage() {
     "Main Course",
     "Appetizers",
   ]);
+  const [filteredCategories, setFilteredCategories] = useState(categories);
+
+  
+  const [categoryFocus, setCategoryFocus] = useState(false);
   const [newCategory, setNewCategory] = useState("");
+  const {token} = useAuth();
 
   const handleAddCategory = () => {
     if (newCategory.trim() === "") {
@@ -43,9 +48,19 @@ export default function AddItemPage() {
       return;
     }
     setCategories([...categories, newCategory]);
+    setItemCategory(newCategory);
     setNewCategory("");
     toast.success("Category added successfully.");
   };
+
+  function handleFilterCategory(e: React.ChangeEvent<HTMLInputElement>) {
+    const filterValue = e.target.value;
+    const filtered = categories.filter((category) =>
+      category.toLowerCase().includes(filterValue.toLowerCase())
+    );
+    setItemCategory(e.target.value);
+    setFilteredCategories(filtered);
+  }
 
   const handleDeleteCategory = (category: string) => {
     setCategories(categories.filter((cat) => cat !== category));
@@ -53,10 +68,9 @@ export default function AddItemPage() {
   };
 
   async function handleSubmit() {
-    setItemCategory('Food');
     if (
       itemName === "" ||
-      !itemImage ||
+
       itemPrice === "" ||
       itemDescription === "" ||
       itemCategory === ""
@@ -74,12 +88,16 @@ export default function AddItemPage() {
     setLoading(true);
     const formData = new FormData();
     formData.append("itemName", itemName);
-    formData.append("itemImage", itemImage);
     formData.append("itemPrice", itemPrice);
     formData.append("itemDescription", itemDescription);
-    formData.append("itemCategory", itemCategory);
+    formData.append("category", itemCategory);
     formData.append("itemStock", itemStock);
-    const token = await authProvider.getToken();
+    if (itemImage) {
+      formData.append("img", itemImage);
+    }
+    for (const [key, value] of formData.entries()) {
+      console.log(`${key}:`, value);
+    }
     const response = await fetch("http://127.0.0.1:8000/api/admin/additem", {
       method: "POST",
       headers: {
@@ -126,49 +144,36 @@ export default function AddItemPage() {
           }}
         />
       </div>
-      <div className="w-full flex flex-col gap-4">
+      <div className="w-full flex flex-col gap-4 relative">
         <Label htmlFor="itemCategory">Item Category</Label>
-        <Select>
-          <SelectTrigger className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm focus:ring-2 focus:ring-ring">
-            <SelectValue placeholder="Select a category" />
-          </SelectTrigger>
+        <Input 
+        id="itemCategory"
+        onFocus={() =>setCategoryFocus(true)}
+        onBlur={() => setCategoryFocus(false)}
+        type="text" onChange={(e) => handleFilterCategory(e)} value={itemCategory} placeholder="Select or type to filter categories">
+        </Input>
+        {
+          categoryFocus && (<div className="absolute z-10 top-16 left-0 bg-white dark:bg-black border border-gray-300 dark:border-gray-700 rounded-md shadow-md w-full max-h-48 overflow-y-auto">
+          {filteredCategories.map((category) => (
+            <div
+              key={category}
+              className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800"
+              onMouseDown={() => setItemCategory(category)}
+               onPointerDown={() => setItemCategory(category)}
+            >
+              {category}
+            </div>
+          ))}
+          <div className="px-4 py-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-800" onMouseDown={handleAddCategory}
+            onPointerDown={handleAddCategory}
+          >
 
-          <SelectContent className="rounded-md border bg-popover shadow-md">
-            <SelectGroup>
-              {categories.map((category) => (
-                <SelectItem
-                  key={category}
-                  value={category}
-                  onClick={() => setItemCategory(category)}
-                  className="flex items-center justify-between gap-2 pr-2"
-                >
-                  <span className="truncate text-sm">{category}</span>
+            Add New Category
+          </div>
+        </div>)
+        }
 
-                  {/* <button
-                    type="button"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleDeleteCategory(category);
-                    }}
-                    className="opacity-0 transition-opacity group-hover:opacity-100 hover:text-destructive focus:opacity-100"
-                  >
-                    <X className="h-4 w-4" />
-                  </button> */}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
-
-        <div className="flex gap-2 mt-2">
-          <Input
-            type="text"
-            placeholder="Add new category"
-            value={newCategory}
-            onChange={(e) => setNewCategory(e.target.value)}
-          />
-          <Button onClick={handleAddCategory}>Add</Button>
-        </div>
+       
       </div>
       <div className="w-full flex flex-col gap-4">
         <Label htmlFor="itemPrice">Item Price</Label>

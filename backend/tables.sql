@@ -29,7 +29,6 @@ EXECUTE FUNCTION trg_category_updated_at();
 ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS item (
     id BIGSERIAL PRIMARY KEY,
-    sku TEXT UNIQUE NOT NULL,
     name TEXT NOT NULL,
     description TEXT,
     unit_price NUMERIC(12,2) DEFAULT 0.00,
@@ -37,7 +36,7 @@ CREATE TABLE IF NOT EXISTS item (
     tax_rate NUMERIC(5,2) DEFAULT 0.0,
 
     -- NEW: CATEGORY RELATION
-    category_id BIGINT REFERENCES category(id) ON DELETE SET NULL,
+    category varchar(50)
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()

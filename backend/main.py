@@ -1,11 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Depends, Form
 import bcrypt
 import jwt 
 import os
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
-from typing import Optional
+from typing import Optional, Dict, Any
 from psycopg2.errors import UniqueViolation
 from fastapi.security import OAuth2PasswordBearer
 
@@ -87,39 +87,32 @@ def signup(data: User):
 def get_cart(user_id: int):
     pass
 
-from pydantic import BaseModel
 
-# Define the Pydantic model for item input
-class Item(BaseModel):
-    sku: str
-    name: str
-    description: Optional[str] = None
-    unit_price: float = 0.00
-    quantity_in_stock: int = 0
-    tax_rate: float = 0.0
-    category_id: Optional[int] = None
+
 
 @app.post('/api/admin/additem')
-def add_item(item: Item, token: str = Depends(oauth2_scheme)):
+async def add_item(
+    itemName: str = Form(...),
+    itemDescription: Optional[str] = Form(None),
+    itemPrice: float = Form(...),
+    itemStock: int = Form(...),
+    tax_rate: Optional[float] = Form(0.0),
+    category: str = Form(...),
+    img: Optional[UploadFile] = File(None),
+    token: str = Depends(oauth2_scheme)
+):
     verify_admin_role(token)
+    
+    # Debug
+    print("Received:", itemName, itemDescription, itemPrice, itemStock, tax_rate, category, img)
+    
     try:
-        # Check if the category exists if category_id is provided
-        if item.category_id is not None:
-            category = query("SELECT id FROM category WHERE id = %s", (item.category_id,))
-            if not category:
-                # Insert the category if it does not exist
-                execute(
-                    "INSERT INTO category (id, name) VALUES (%s, %s)",
-                    (item.category_id, f"Category-{item.category_id}")
-                )
-
-        # Insert the item into the database
         execute(
             """
-            INSERT INTO item (sku, name, description, unit_price, quantity_in_stock, tax_rate, category_id)
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
+            INSERT INTO item (name, description, unit_price, quantity_in_stock, tax_rate, category)
+            VALUES (%s, %s, %s, %s, %s, %s)
             """,
-            (item.sku, item.name, item.description, item.unit_price, item.quantity_in_stock, item.tax_rate, item.category_id)
+            (itemName, itemDescription, itemPrice, itemStock, tax_rate, category)
         )
         return {"message": "Item added successfully"}
     except Exception as e:
