@@ -63,7 +63,7 @@ def signup(data: User):
             "INSERT INTO user_account (username, email, password_hash) VALUES (%s, %s, %s)",
             (data.username, data.email, hashed_password.decode('utf-8'))
         )
-        return {"message": "User created successfully"}
+        return {"message": "User created successfully", "token": create_token(data.username, data.email, "user")}
     except Exception as e:
         return {"error": str(e)}
 
