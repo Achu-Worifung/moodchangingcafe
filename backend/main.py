@@ -1,12 +1,14 @@
 from fastapi import FastAPI
-import psycopg2 as pg
 import bcrypt
 import jwt 
+import os
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
+from typing import Optional
 
 from models.models import User, LoginData, AddItem
+from dbconfig import query, execute
 
 app = FastAPI()
 # run script: fastapi dev main.py
@@ -21,19 +23,49 @@ app.add_middleware(
 
 salt = bcrypt.gensalt()
 
+SECRET_KEY = os.getenv("SECRET_KEY", "your_secret_key")
+ALGORITHM = "HS256"
+
+# Helper function to generate JWT token
+def create_token(username: str, email: str, role: str) -> str:
+    payload = {
+        "username": f"{username}_{datetime.utcnow().strftime('%Y-%m-%d')}",
+        "email": email,
+        "role": role,
+        # "exp": datetime.utcnow() + timedelta(days=1)
+    }
+    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
 
 @app.post('/api/auth/login')
 def login(data: LoginData):
-    # conn = pg.connect(database="postgres", user="postgres", password="postgres", host="localhost", port="5432")
-    # cursor = conn.cursor()
-    # cursor.execute("SELECT * FROM users WHERE username = %s", (data.username,))
-    pass 
+    try:
+        user = query(
+            "SELECT username, email, password_hash, role FROM user_account WHERE username = %s",
+            (data.username,)
+        )
+
+        if user and bcrypt.checkpw(data.password.encode('utf-8'), user[0][2].encode('utf-8')):
+            token = create_token(user[0][0], user[0][1], user[0][3])
+            return {"token": token}
+        else:
+            return {"error": "Invalid username or password"}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.post('/api/auth/signup')
 def signup(data: User):
-    pass
+    # Hash the password
+    hashed_password = bcrypt.hashpw(data.password.encode('utf-8'), salt)
 
+    try:
+        execute(
+            "INSERT INTO user_account (username, email, password_hash) VALUES (%s, %s, %s)",
+            (data.username, data.email, hashed_password.decode('utf-8'))
+        )
+        return {"message": "User created successfully"}
+    except Exception as e:
+        return {"error": str(e)}
 
 @app.get('/api/cart/{user_id}')
 def get_cart(user_id: int):
