@@ -18,6 +18,8 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { useAuth } from "@/lib/auth-context";
+
 import {
   DropdownMenu,
   DropdownMenuCheckboxItem,
@@ -37,6 +39,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectGroup,
@@ -45,6 +58,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { toast } from "sonner";
 
 const data: Payment[] = [
   {
@@ -187,78 +201,119 @@ export type Item = {
   category: string;
 };
 
-export const itemColumns: ColumnDef<Item>[] = [
-  {
-    accessorKey: "id",
-    header: "ID",
-  },
-  {
-    accessorKey: "name",
-    header: "Name",
-  },
-  {
-    accessorKey: "description",
-    header: "Description",
-  },
-  {
-    accessorKey: "unit_price",
-    header: "Unit Price",
-    cell: ({ row }) => {
-      const price = parseFloat(row.getValue("unit_price"));
-
-      return new Intl.NumberFormat("en-US", {
-        style: "currency",
-        currency: "USD",
-      }).format(price);
+export function createItemColumns(token: string): ColumnDef<Item>[] {
+  return [
+    {
+      accessorKey: "id",
+      header: "ID",
     },
-  },
-  {
-    accessorKey: "quantity_in_stock",
-    header: "Stock",
-  },
-  {
-    accessorKey: "tax_rate",
-    header: "Tax Rate",
-  },
-  {
-    accessorKey: "category",
-    header: "Category",
-  },
-  {
-    id: "actions",
-    enableHiding: false,
-    cell: ({ row }) => {
-      const item = row.original;
-
-      return (
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className="h-8 w-8 p-0">
-              <span className="sr-only">Open menu</span>
-              <MoreHorizontal />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Actions</DropdownMenuLabel>
-
-            <DropdownMenuSeparator />
-            <DropdownMenuItem className="bg-red-600 text-white hover:text-red-600! hover:bg-gray-300! cursor-pointer">
-              Delete Item
-            </DropdownMenuItem>
-            <DropdownMenuItem>
-              <Link
-                href={{ pathname: `/admin/edit-item/${item.id}`}}
-                className=" cursor-pointer my-2 w-full h-full"
-              >
-                Edit Item
-              </Link>
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      );
+    {
+      accessorKey: "name",
+      header: "Name",
     },
-  },
-];
+    {
+      accessorKey: "description",
+      header: "Description",
+    },
+    {
+      accessorKey: "unit_price",
+      header: "Unit Price",
+      cell: ({ row }) => {
+        const price = parseFloat(row.getValue("unit_price"));
+
+        return new Intl.NumberFormat("en-US", {
+          style: "currency",
+          currency: "USD",
+        }).format(price);
+      },
+    },
+    {
+      accessorKey: "quantity_in_stock",
+      header: "Stock",
+    },
+    {
+      accessorKey: "tax_rate",
+      header: "Tax Rate",
+    },
+    {
+      accessorKey: "category",
+      header: "Category",
+    },
+    {
+      id: "actions",
+      enableHiding: false,
+      
+      cell: ({ row }) => {
+        const item = row.original;
+
+        function deleteItem(itemId: string) {
+          fetch(`http://127.0.0.1:8000/api/admin/item/${itemId}`, {
+            method: "DELETE",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+            },
+          });
+          toast.success("Item deleted successfully.", {
+            duration: 2000,
+          });
+          setTimeout(() => {
+            //refresh the page
+          }, 2000);
+        }
+
+        return (
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="h-8 w-8 p-0">
+                <span className="sr-only">Open menu</span>
+                <MoreHorizontal />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuLabel>Actions</DropdownMenuLabel>
+
+              <DropdownMenuSeparator />
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <DropdownMenuItem
+                    className="bg-red-600 text-white hover:text-red-600! hover:bg-gray-300! cursor-pointer"
+                    onSelect={(e) => e.preventDefault()}
+                  >
+                    Delete Item
+                  </DropdownMenuItem>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete
+                      the item and remove its data from our servers.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => deleteItem(item.id)}>
+                      Continue
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+              <DropdownMenuItem>
+                <Link
+                  href={{ pathname: `/admin/edit-item/${item.id}` }}
+                  className=" cursor-pointer my-2 w-full h-full"
+                >
+                  Edit Item
+                </Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        );
+      },
+    },
+  ];
+}
 
 export function DataTableDemo() {
   const [sorting, setSorting] = React.useState<SortingState>([]);
@@ -405,6 +460,8 @@ export function DataTableDemo() {
 }
 
 export function ItemTable({ data }: { data: Item[] }) {
+    const { token } = useAuth();
+
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState<keyof Item | "">("");
 
@@ -429,9 +486,11 @@ export function ItemTable({ data }: { data: Item[] }) {
     });
   }, [filteredData, sortKey]);
 
+  const columns = useMemo(() => createItemColumns(token), [token]);
+
   const table = useReactTable({
     data: sortedData,
-    columns: itemColumns,
+    columns: columns,
     getCoreRowModel: getCoreRowModel(),
   });
 

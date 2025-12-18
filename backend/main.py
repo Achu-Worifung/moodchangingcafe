@@ -191,3 +191,20 @@ def get_all_items(item_id: int):
         return {"item": item_data}
     except Exception as e:
         return {"error": str(e)}
+
+@app.delete("/api/admin/item/{item_id}")
+async def delete_item(item_id: int, token: str = Depends(oauth2_scheme)):
+    verify_admin_role(token)
+    try:
+        # Check if the item exists
+        item = query("SELECT id FROM item WHERE id=%s", (item_id,))
+        if not item:
+            raise HTTPException(status_code=404, detail="Item not found")
+
+        # Delete the item
+        execute("DELETE FROM item WHERE id=%s", (item_id,))
+        return {"message": "Item deleted successfully"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
