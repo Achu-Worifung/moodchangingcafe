@@ -104,10 +104,7 @@ async def add_item(
     token: str = Depends(oauth2_scheme)
 ):
     verify_admin_role(token)
-    
-    # Debug
-    print("Received:", itemName, itemDescription, itemPrice, itemStock, tax_rate, category, img)
-    
+
     # Read image bytes
     img_bytes = None
     if img:
@@ -116,20 +113,45 @@ async def add_item(
     try:
         execute(
             """
-            INSERT INTO item (name, description, unit_price, quantity_in_stock, tax_rate, category, img)
+            INSERT INTO item (
+                name,
+                description,
+                unit_price,
+                quantity_in_stock,
+                tax_rate,
+                category,
+                img
+            )
             VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ON CONFLICT (name)
+            DO UPDATE SET
+                description = EXCLUDED.description,
+                unit_price = EXCLUDED.unit_price,
+                quantity_in_stock = EXCLUDED.quantity_in_stock,
+                tax_rate = EXCLUDED.tax_rate,
+                category = EXCLUDED.category,
+                img = COALESCE(EXCLUDED.img, item.img);
             """,
-            (itemName, itemDescription, itemPrice, itemStock, tax_rate, category, img_bytes)
+            (
+                itemName,
+                itemDescription,
+                itemPrice,
+                itemStock,
+                tax_rate,
+                category,
+                img_bytes
+            )
         )
-        return {"message": "Item added successfully"}
+        return {"message": "Item added or updated successfully"}
     except Exception as e:
         return {"error": str(e)}
 
 
-@app.get('/api/admin/items')
+
+@app.get('/api/admin/itemsforadmin')
 def get_all_items():
     try:
-        items = query("SELECT id, name, description, unit_price, quantity_in_stock, tax_rate, category, img FROM item")
+        items = query("SELECT id, name, description, unit_price, quantity_in_stock, tax_rate, category FROM item")
         item_list = [
             {
                 "id": item[0],
@@ -139,11 +161,33 @@ def get_all_items():
                 "quantity_in_stock": item[4],
                 "tax_rate": float(item[5]),
                 "category": item[6],
-                "img": item[7].hex() if item[7] else None
+                "img": None
             }
             for item in items
         ]
         # print("Fetched items:", item_list)
         return {"items": item_list}
+    except Exception as e:
+        return {"error": str(e)}
+    
+@app.get('/api/admin/item/{item_id}')
+def get_all_items(item_id: int):
+    try:
+        items = query("SELECT id, name, description, unit_price, quantity_in_stock, tax_rate, category, img FROM item WHERE id=%s", (item_id,))
+        if not items:
+            return {"error": "Item not found"}
+
+        item = items[0]  # Since we are fetching by ID, there should only be one result
+        item_data = {
+            "id": item[0],
+            "name": item[1],
+            "description": item[2],
+            "unit_price": float(item[3]),
+            "quantity_in_stock": item[4],
+            "tax_rate": float(item[5]),
+            "category": item[6],
+            "img": item[7].hex() if item[7] else None  # Ensure img is handled correctly
+        }
+        return {"item": item_data}
     except Exception as e:
         return {"error": str(e)}

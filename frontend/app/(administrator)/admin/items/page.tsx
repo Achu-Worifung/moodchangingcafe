@@ -13,7 +13,7 @@ export default function EditItemPage() {
     async function fetchItems() {
       setLoading(true);
       try {
-        const res = await fetch("http://127.0.0.1:8000/api/admin/items");
+        const res = await fetch("http://127.0.0.1:8000/api/admin/itemsforadmin");
         if (!res.ok) {
           toast.error("Failed to fetch items. Please try again.");
         }
@@ -43,7 +43,7 @@ export default function EditItemPage() {
         <div>No items found.</div>
       ) : (
         <div className="space-y-8 flex flex-col items-center justify-start p-8 w-full min-h-screen mt-20">
-            <h1 className="text-4xl font-bold text-center">Edit Items</h1>
+            <h1 className="text-4xl font-bold text-center">View Items</h1>
 
             <ItemTable data={items} />
         </div>

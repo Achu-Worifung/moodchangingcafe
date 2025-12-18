@@ -29,7 +29,7 @@ EXECUTE FUNCTION trg_category_updated_at();
 ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS item (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
+    name TEXT NOT NULL UNIQUE,
     description TEXT,
     unit_price NUMERIC(12,2) DEFAULT 0.00,
     quantity_in_stock INTEGER NOT NULL DEFAULT 0,

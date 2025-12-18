@@ -15,7 +15,7 @@ import {
 } from "@tanstack/react-table";
 import { ArrowUpDown, ChevronDown, MoreHorizontal } from "lucide-react";
 import { useState, useMemo } from "react";
-
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -228,7 +228,8 @@ export const itemColumns: ColumnDef<Item>[] = [
     id: "actions",
     enableHiding: false,
     cell: ({ row }) => {
-      const payment = row.original;
+      const item = row.original;
+
       return (
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
@@ -244,8 +245,13 @@ export const itemColumns: ColumnDef<Item>[] = [
             <DropdownMenuItem className="bg-red-600 text-white hover:text-red-600! hover:bg-gray-300! cursor-pointer">
               Delete Item
             </DropdownMenuItem>
-            <DropdownMenuItem className=" cursor-pointer">
-              Edit Item
+            <DropdownMenuItem>
+              <Link
+                href={{ pathname: `/admin/edit-item/${item.id}`}}
+                className=" cursor-pointer my-2 w-full h-full"
+              >
+                Edit Item
+              </Link>
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -403,8 +409,10 @@ export function ItemTable({ data }: { data: Item[] }) {
   const [sortKey, setSortKey] = useState<keyof Item | "">("");
 
   const filteredData = useMemo(() => {
-    return data.filter((item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) || item.description.toLowerCase().includes(searchTerm.toLowerCase())
+    return data.filter(
+      (item) =>
+        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.description.toLowerCase().includes(searchTerm.toLowerCase())
     );
   }, [data, searchTerm]);
 

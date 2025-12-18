@@ -1,20 +1,24 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
 import { useAuth } from "@/lib/auth-context";
 import { ItemFormProps } from "@/lib/types";
+import { Item } from "@radix-ui/react-dropdown-menu";
+import { useParams } from "next/navigation";
 
-export function ItemForm(ItemFormProps: ItemFormProps) {
+export function ItemForm() {
+  const { item } = useParams();
+  console.log("Editing item id:", item);
   const [loading, setLoading] = useState(false);
-  const [itemName, setItemName] = useState(ItemFormProps.ItemName || "");
-  const [itemImage, setItemImage] = useState<File | null>(ItemFormProps.ItemImage || null);
-  const [itemPrice, setItemPrice] = useState(ItemFormProps.ItemPrice || "");
-  const [itemDescription, setItemDescription] = useState(ItemFormProps.ItemDescription || "");
-  const [itemCategory, setItemCategory] = useState(ItemFormProps.ItemCategory || "");
-  const [itemStock, setItemStock] = useState(ItemFormProps.ItemStock || "");
+  const [itemName, setItemName] = useState("");
+  const [itemImage, setItemImage] = useState<File | null>(null);
+  const [itemPrice, setItemPrice] = useState("");
+  const [itemDescription, setItemDescription] = useState("");
+  const [itemCategory, setItemCategory] = useState("");
+  const [itemStock, setItemStock] = useState("");
   const [categories, setCategories] = useState([
     "Beverages",
     "Snacks",
@@ -23,6 +27,35 @@ export function ItemForm(ItemFormProps: ItemFormProps) {
     "Appetizers",
   ]);
   const [filteredCategories, setFilteredCategories] = useState(categories);
+  console.log(
+    "here are the item form props:",
+    itemName,
+    itemImage,
+    itemPrice,
+    itemDescription,
+    itemCategory,
+    itemStock
+  );
+
+
+  if (item) {
+    async function fetchItemDetails() {
+      const res = await fetch(`http://127.0.0.1:8000/api/admin/item/${item}`);
+      if (!res.ok) {
+        toast.error("Failed to fetch item details. Please try again.");
+        return;
+      }
+      const data = await res.json();
+      setItemName(data.item.name);
+      setItemPrice(data.item.unit_price);
+      setItemDescription(data.item.description);
+      setItemCategory(data.item.category);
+      setItemStock(data.item.quantity_in_stock);
+      setItemImage(data.item.img);
+      console.log("data from fetchItemDetails:", data);
+    }
+    fetchItemDetails();
+  }
 
   const [categoryFocus, setCategoryFocus] = useState(false);
   const [newCategory, setNewCategory] = useState("");
@@ -83,7 +116,7 @@ export function ItemForm(ItemFormProps: ItemFormProps) {
     }
     setLoading(true);
     const formData = new FormData();
-    formData.append("itemName", itemName);
+    formData.append("itemName", itemName.toLowerCase());
     formData.append("itemPrice", itemPrice);
     formData.append("itemDescription", itemDescription);
     formData.append("category", itemCategory);
