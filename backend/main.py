@@ -11,6 +11,8 @@ from fastapi.security import OAuth2PasswordBearer
 
 from models.models import User, LoginData, AddItem
 from dbconfig import query, execute
+# uvicorn main:app --reload
+
 
 app = FastAPI()
 # run script: fastapi dev main.py
@@ -106,14 +108,42 @@ async def add_item(
     # Debug
     print("Received:", itemName, itemDescription, itemPrice, itemStock, tax_rate, category, img)
     
+    # Read image bytes
+    img_bytes = None
+    if img:
+        img_bytes = await img.read()
+
     try:
         execute(
             """
-            INSERT INTO item (name, description, unit_price, quantity_in_stock, tax_rate, category)
-            VALUES (%s, %s, %s, %s, %s, %s)
+            INSERT INTO item (name, description, unit_price, quantity_in_stock, tax_rate, category, img)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
             """,
-            (itemName, itemDescription, itemPrice, itemStock, tax_rate, category)
+            (itemName, itemDescription, itemPrice, itemStock, tax_rate, category, img_bytes)
         )
         return {"message": "Item added successfully"}
+    except Exception as e:
+        return {"error": str(e)}
+
+
+@app.get('/api/admin/items')
+def get_all_items():
+    try:
+        items = query("SELECT id, name, description, unit_price, quantity_in_stock, tax_rate, category, img FROM item")
+        item_list = [
+            {
+                "id": item[0],
+                "name": item[1],
+                "description": item[2],
+                "unit_price": float(item[3]),
+                "quantity_in_stock": item[4],
+                "tax_rate": float(item[5]),
+                "category": item[6],
+                "img": item[7].hex() if item[7] else None
+            }
+            for item in items
+        ]
+        # print("Fetched items:", item_list)
+        return {"items": item_list}
     except Exception as e:
         return {"error": str(e)}

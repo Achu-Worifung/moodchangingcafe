@@ -34,6 +34,7 @@ CREATE TABLE IF NOT EXISTS item (
     unit_price NUMERIC(12,2) DEFAULT 0.00,
     quantity_in_stock INTEGER NOT NULL DEFAULT 0,
     tax_rate NUMERIC(5,2) DEFAULT 0.0,
+    img BYTEA,
 
     -- NEW: CATEGORY RELATION
     category varchar(50)
@@ -42,9 +43,7 @@ CREATE TABLE IF NOT EXISTS item (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-CREATE INDEX IF NOT EXISTS idx_item_sku ON item(sku);
-CREATE INDEX IF NOT EXISTS idx_item_category ON item(category_id);
-
+CREATE INDEX IF NOT EXISTS idx_item_name ON item(name);
 
 -- Updated timestamp trigger
 CREATE OR REPLACE FUNCTION trg_item_updated_at()
