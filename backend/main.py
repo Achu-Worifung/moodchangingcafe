@@ -8,6 +8,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from typing import Optional, Dict, Any
 from psycopg2.errors import UniqueViolation
 from fastapi.security import OAuth2PasswordBearer
+from fastapi.websockets import WebSocket
+from fastapi.websockets import WebSocketDisconnect
 
 from models.models import User, LoginData, AddItem
 from dbconfig import query, execute
@@ -208,3 +210,51 @@ async def delete_item(item_id: int, token: str = Depends(oauth2_scheme)):
         return {"error": str(e)}
 
 
+# user routes 
+
+@app.get('/api/items')
+async def get_items():
+    try:
+        items = query("SELECT id, name, description, unit_price, quantity_in_stock, tax_rate, category, img FROM item WHERE quantity_in_stock > 0 ORDER BY Category, name ASC")
+        item_list = [
+            {
+                "id": item[0],
+                "name": item[1],
+                "description": item[2],
+                "unit_price": float(item[3]),
+                "quantity_in_stock": item[4],
+                "tax_rate": float(item[5]),
+                "category": item[6],
+                "img": item[7].hex() if item[7] else None
+            }
+            for item in items
+        ]
+        return {"items": item_list}
+    except Exception as e:
+        return {"error": str(e)}
+
+# Dictionary to store connected WebSocket clients for each item
+connected_clients = {}
+
+@app.websocket("/ws/stock/{item_id}")
+async def websocket_stock_tracker(websocket: WebSocket, item_id: int):
+    await websocket.accept()
+
+    if item_id not in connected_clients:
+        connected_clients[item_id] = []
+    connected_clients[item_id].append(websocket)
+
+    try:
+        while True:
+            # Keep the connection alive
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        connected_clients[item_id].remove(websocket)
+        if not connected_clients[item_id]:
+            del connected_clients[item_id]
+
+# Function to broadcast stock updates to connected clients
+async def broadcast_stock_update(item_id: int, stock: int):
+    if item_id in connected_clients:
+        for websocket in connected_clients[item_id]:
+            await websocket.send_json({"item_id": item_id, "stock": stock})
