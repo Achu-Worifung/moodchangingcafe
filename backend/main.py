@@ -1,7 +1,10 @@
 from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Depends, Form
 import bcrypt
 import jwt 
+import asyncpg
+import json
 import os
+import asyncio
 from datetime import datetime, timedelta
 from pydantic import BaseModel
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,12 +15,13 @@ from fastapi.websockets import WebSocket
 from fastapi.websockets import WebSocketDisconnect
 
 from models.models import User, LoginData, AddItem
-from dbconfig import query, execute
+from dbconfig import query, execute, DB_CONFIG
 # uvicorn main:app --reload
 
 
 app = FastAPI()
-# run script: fastapi dev main.py
+# run script: fastapi dev main.py --reload
+# uvicorn main:app --reload
 #aconfigure CORS
 app.add_middleware(
     CORSMiddleware,
@@ -233,28 +237,35 @@ async def get_items():
     except Exception as e:
         return {"error": str(e)}
 
-# Dictionary to store connected WebSocket clients for each item
-connected_clients = {}
 
-@app.websocket("/ws/stock/{item_id}")
-async def websocket_stock_tracker(websocket: WebSocket, item_id: int):
+
+# item websocket 
+connected_clients :set[WebSocket] = set()
+@app.websocket("/ws/item/{item_id}")
+async def item_websocket(websocket: WebSocket, item_id: int):
     await websocket.accept()
-
-    if item_id not in connected_clients:
-        connected_clients[item_id] = []
-    connected_clients[item_id].append(websocket)
-
+    connected_clients.add((websocket, item_id))
     try:
         while True:
-            # Keep the connection alive
-            await websocket.receive_text()
+            await websocket.receive_text()  # Keep alive or handle messages
     except WebSocketDisconnect:
-        connected_clients[item_id].remove(websocket)
-        if not connected_clients[item_id]:
-            del connected_clients[item_id]
-
-# Function to broadcast stock updates to connected clients
-async def broadcast_stock_update(item_id: int, stock: int):
-    if item_id in connected_clients:
-        for websocket in connected_clients[item_id]:
-            await websocket.send_json({"item_id": item_id, "stock": stock})
+        print(f"WebSocket disconnected for item {item_id}")
+    finally:
+        connected_clients.discard((websocket, item_id))
+        await websocket.close()
+async def listen_to_db():
+    conn = await asyncpg.connect(**DB_CONFIG)
+    print("Listening to database notifications...")
+    async def handler(connection, pid, channel, payload):
+        print(f"Received notification on channel {channel}: {payload}")
+        data = json.loads(payload)
+        for ws, ws_item_id in connected_clients:
+            if ws_item_id == data['item_id']:
+                await ws.send_json(data)
+    await conn.add_listener('item_updates', handler)
+    while True:
+        await asyncio.sleep(60)  # Keep the connection alive
+        
+@app.on_event("startup")    
+async def startup_event():
+    asyncio.create_task(listen_to_db())

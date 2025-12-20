@@ -37,7 +37,7 @@ export default function Home() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {items && items.map((item) => (
           <div key={item.id} className="border rounded-lg p-4 shadow-md cursor-pointer hover:shadow-lg transition-shadow ease-in-out"
-          onClick={() => router.push(`/items/${item.id}`)} >
+          onClick={() => router.push(`/item/${item.id}`)} >
             <img
               src={ item.img && `data:image/png;base64,${hexToBase64(item.img)}`}
               alt={item.name || "Item image"}

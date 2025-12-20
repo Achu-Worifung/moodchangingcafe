@@ -24,7 +24,7 @@ export function User() {
       {token ? (
         <DropdownMenu>
           <DropdownMenuTrigger>
-            <Avatar className="w-8 h-8">
+            <Avatar className="w-8 h-8 mx-2 cursor-pointer">
               <AvatarImage src={""} />
               <AvatarFallback>{displayName.charAt(0).toUpperCase()}</AvatarFallback>
             </Avatar>
@@ -41,10 +41,11 @@ export function User() {
           </DropdownMenuContent>
         </DropdownMenu>
       ) : (
-        <Link href="/signin" className="">
+        <Link href="/signin" className=" px-2 hover:underline underline-offset-2">
           Sign In
         </Link>
       )}
     </>
   );
 }
+

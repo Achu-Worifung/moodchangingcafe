@@ -32,12 +32,12 @@ CREATE TABLE IF NOT EXISTS item (
     name TEXT NOT NULL UNIQUE,
     description TEXT,
     unit_price NUMERIC(12,2) DEFAULT 0.00,
-    quantity_in_stock INTEGER NOT NULL DEFAULT 0,
+    quantity_in_stock INTEGER NOT NULL DEFAULT 0 CHECK (quantity_in_stock >= 0),
     tax_rate NUMERIC(5,2) DEFAULT 0.0,
     img BYTEA,
 
     -- NEW: CATEGORY RELATION
-    category varchar(50)
+    category varchar(50),
 
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
@@ -45,19 +45,26 @@ CREATE TABLE IF NOT EXISTS item (
 
 CREATE INDEX IF NOT EXISTS idx_item_name ON item(name);
 
--- Updated timestamp trigger
-CREATE OR REPLACE FUNCTION trg_item_updated_at()
+-- Trigger to notify on item updates
+CREATE OR REPLACE FUNCTION notify_item_update()
 RETURNS TRIGGER AS $$
 BEGIN
-    NEW.updated_at := now();
+    PERFORM pg_notify(
+        'item_updates',
+        json_build_object(
+            'item_id', NEW.id,
+            'quantity_in_stock', NEW.quantity_in_stock
+        )::text
+    );
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE TRIGGER item_set_updated_at
-BEFORE UPDATE ON item
+
+CREATE TRIGGER item_notify_update
+AFTER UPDATE ON item
 FOR EACH ROW
-EXECUTE FUNCTION trg_item_updated_at();
+EXECUTE FUNCTION notify_item_update();
 
 
 ---------------------------------------------------------
