@@ -252,6 +252,52 @@ async def single_purchase(purchaseproperties: Dict[str, Any], token: str = Depen
        
 # user routes websockets
 
+@app.get('/api/orders')
+async def get_orders(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = verify_user(token)
+        email = payload.get("email")
+        
+        if not email:
+            raise HTTPException(status_code=400, detail="Email missing in token")
+        
+        # Fetch all orders for the user
+        orders = query(
+            "SELECT id, customer_email, status, total_price, created_at, updated_at FROM \"order\" WHERE customer_email = %s ORDER BY created_at DESC",
+            (email,)
+        )
+        print("here are the orders:", orders)
+        
+        # Split orders into current and old based on status
+        current_orders = []
+        old_receipts = []
+        
+        for order in orders:
+            order_data = {
+                "id": order[0],
+                "customer_email": order[1],
+                "status": order[2],
+                "total_price": float(order[3]) if order[3] else 0.0,
+                "created_at": order[4].isoformat() if order[4] else None,
+                "updated_at": order[5].isoformat() if order[5] else None
+            }
+            
+            # Old orders: picked up
+            # Current orders: recieved, preparing, ready for pickup
+            if order[2] in ['picked up']:
+                old_receipts.append(order_data)
+            else:
+                current_orders.append(order_data)
+        
+        return {
+            "orders": current_orders,
+            "old_reciepts": old_receipts
+        }
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        return {"error": str(e)}
+
 @app.get('/api/items')
 async def get_items():
     try:

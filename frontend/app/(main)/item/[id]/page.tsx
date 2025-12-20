@@ -53,6 +53,16 @@ export default function Item() {
       socket.onopen = () => {
         console.log("WebSocket connection opened");
       };
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        //reconnect logic could be added here
+        socket.close();
+        openwebsocket();
+      };
+      socket.onclose = () => {
+        console.log("WebSocket connection closed");
+        openwebsocket();
+      };
     }
     fetchItem();
     openwebsocket();
