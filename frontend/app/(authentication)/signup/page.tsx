@@ -10,27 +10,24 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useAuth } from "@/lib/auth-context";
-
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
+import { FirebaseError } from "firebase/app";
 
 export default function SignupPage() {
-  const { setToken, setIsSignedIn } = useAuth();
-  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
   async function handleSubmit() {
-    if (name === "" || email === "" || password === "") {
+    if (email === "" || password === "" || confirmPassword === "") {
       toast.error("All fields are required.");
       return;
     }
@@ -39,63 +36,94 @@ export default function SignupPage() {
       toast.error("Password must be at least 6 characters long.");
       return;
     }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
 
     setIsLoading(true);
+
     try {
-      // Create user in Firebase Authentication
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      const uid = userCredential.user.uid;
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      const user = userCredential.user;
+      console.log("Firebase user created:", user);
 
-      // Save user data to Firestore
-      await setDoc(doc(db, "users", uid), {
-        name: name,
-        email: email,
-        role: "user",
-        createdAt: new Date(),
-      });
+      // Attempt to create the user profile in Firestore. If this fails or times out,
+      // proceed with signup and show a warning so the UI doesn't get stuck.
+      try {
+        const write = setDoc(doc(db, "users", user.uid), {
+          name,
+          email,
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
 
-      // Register with backend API to get JWT token
-      const res = await fetch("http://127.0.0.1:8000/api/auth/register", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ 
-          name, 
-          email, 
-          password,
-          firebaseUid: uid 
-        }),
-      });
+        const timeout = new Promise((_, reject) =>
+          setTimeout(() => reject(new Error("firestore-timeout")), 8000)
+        );
 
-      if (!res.ok) {
-        const errorData = await res.json();
-        toast.error(errorData.message || "Failed to register. Please try again.");
-        return;
+        await Promise.race([write, timeout]);
+      } catch (err: unknown) {
+        console.warn("Firestore profile write skipped:", err);
+        const code =
+          typeof err === "object" && err !== null && "code" in err
+            ? (err as { code?: string }).code
+            : undefined;
+        const message =
+          typeof err === "object" && err !== null && "message" in err
+            ? (err as { message?: string }).message
+            : undefined;
+
+        if (code === "permission-denied") {
+          toast.warning(
+            "Account created, but profile write blocked by Firestore rules."
+          );
+        } else if (message === "firestore-timeout") {
+          toast.warning("Account created, but saving profile timed out.");
+        } else {
+          toast.warning("Account created, but failed to save profile.");
+        }
       }
 
-      const resData = await res.json();
-      
-      // Save token and mark as signed in
-      setToken(resData.token);
-      setIsSignedIn(true);
       toast.success("Account created successfully!");
-      
+
       setTimeout(() => {
-        router.push('/');
+        router.push("/");
       }, 1000);
-    } catch (error: any) {
+    } catch (error) {
       console.error("Signup error:", error);
-      
-      // Handle Firebase-specific errors
-      if (error.code === "auth/email-already-in-use") {
-        toast.error("Email is already in use. Please use a different email.");
-      } else if (error.code === "auth/invalid-email") {
-        toast.error("Invalid email address.");
-      } else if (error.code === "auth/weak-password") {
-        toast.error("Password is too weak. Please use a stronger password.");
+
+      // Check if it's a FirebaseError
+      if (error instanceof FirebaseError) {
+        switch (error.code) {
+          case "auth/email-already-in-use":
+            toast.error(
+              "Email is already in use. Please use a different email."
+            );
+            break;
+          case "auth/invalid-email":
+            toast.error("Invalid email address.");
+            break;
+          case "auth/weak-password":
+            toast.error(
+              "Password is too weak. Please use a stronger password."
+            );
+            break;
+          case "auth/operation-not-allowed":
+            toast.error(
+              "Email/password accounts are not enabled. Please contact support."
+            );
+            break;
+          default:
+            toast.error("An error occurred during signup. Please try again.");
+        }
       } else {
-        toast.error(error.message || "An error occurred during signup. Please try again.");
+        // Handle non-Firebase errors
+        toast.error("An unexpected error occurred. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -119,17 +147,6 @@ export default function SignupPage() {
         <div>
           <div className="flex flex-col gap-6">
             <div className="grid gap-2">
-              <Label htmlFor="name">Name</Label>
-              <Input
-                id="name"
-                type="text"
-                placeholder="Your Name"
-                required
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-              />
-            </div>
-            <div className="grid gap-2">
               <Label htmlFor="email">Email</Label>
               <Input
                 id="email"
@@ -138,6 +155,7 @@ export default function SignupPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                disabled={isLoading}
               />
             </div>
             <div className="grid gap-2">
@@ -146,8 +164,22 @@ export default function SignupPage() {
                 id="password"
                 type="password"
                 required
+                placeholder="Create a password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="confirmPassword">Confirm Password</Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                required
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                disabled={isLoading}
               />
             </div>
           </div>

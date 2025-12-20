@@ -18,7 +18,6 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
-import { useAuth } from "@/lib/auth-context";
 
 import {
   DropdownMenu,
@@ -460,7 +459,6 @@ export function DataTableDemo() {
 }
 
 export function ItemTable({ data }: { data: Item[] }) {
-    const { token } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState<keyof Item | "">("");

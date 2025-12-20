@@ -1,14 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useAuth } from "@/lib/auth-context";
 import Loading from "@/app/loading";
 
 export default function Orders() {
   const [oldReciepts, setOldReciepts] = useState([]);
   const [currOrders, setCurrOrders] = useState([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const { token } = useAuth();
 
   useEffect(() => {
     

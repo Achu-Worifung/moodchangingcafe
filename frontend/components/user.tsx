@@ -11,17 +11,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { decodeJWT } from "@/lib/auth-util";
-import { useAuth } from "@/lib/auth-context";
 
 export function User() {
-  const { token } = useAuth();
-  const userInfo = token ? decodeJWT(token) : null;
-  console.log("User Info:", userInfo);
-  const displayName = userInfo ? userInfo.username.split("_")[0] : "Guest";
+  const displayName = "User";
+ 
   return (
     <>
-      {token ? (
+      {true ? (
         <DropdownMenu>
           <DropdownMenuTrigger>
             <Avatar className="w-8 h-8 mx-2 cursor-pointer">

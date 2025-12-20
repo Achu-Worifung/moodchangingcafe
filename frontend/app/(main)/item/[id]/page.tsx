@@ -6,7 +6,6 @@ import { ItemFormProps } from "@/lib/types";
 import { hexToBase64 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
-import { useAuth } from "@lib/auth-context";
 import { useRouter } from "next/navigation";
 import {
   AlertDialog,
@@ -28,7 +27,6 @@ export default function Item() {
   const [isValid, setIsValid] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [signInDialogOpen, setSignInDialogOpen] = useState(false);
-  const { token, isSignedIn } = useAuth();
   const router = useRouter();
 
   useEffect(() => {

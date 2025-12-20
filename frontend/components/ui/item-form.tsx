@@ -4,7 +4,6 @@ import { toast } from "sonner";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
-import { useAuth } from "@/lib/auth-context";
 import { ItemFormProps } from "@/lib/types";
 import { Item } from "@radix-ui/react-dropdown-menu";
 import { useParams } from "next/navigation";
@@ -59,7 +58,6 @@ export function ItemForm() {
 
   const [categoryFocus, setCategoryFocus] = useState(false);
   const [newCategory, setNewCategory] = useState("");
-  const { token } = useAuth();
 
   const handleAddCategory = () => {
     if (newCategory.trim() === "") {

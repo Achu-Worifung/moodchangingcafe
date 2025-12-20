@@ -15,7 +15,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/lib/auth-context';
 import { signInWithEmailAndPassword } from "firebase/auth";
 import { auth } from "@/lib/firebase";
 
@@ -24,7 +23,6 @@ export default function SignInPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  const { setToken, setIsSignedIn } = useAuth();
 
   async function handleSubmit() {
     if (email === "" || password === "") {
@@ -54,9 +52,7 @@ export default function SignInPage() {
 
       const resData = await res.json();
 
-      // Save token and mark as signed in
-      setToken(resData.token);
-      setIsSignedIn(true);
+
       toast.success("Login successful!");
       
       setTimeout(() => {
