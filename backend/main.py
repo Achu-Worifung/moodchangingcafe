@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, UploadFile, File, Depends, 
 import bcrypt
 import jwt 
 import asyncpg
+
 import json
 import os
 import asyncio
@@ -15,7 +16,8 @@ from fastapi.websockets import WebSocket
 from fastapi.websockets import WebSocketDisconnect
 
 from models.models import User, LoginData, AddItem
-from dbconfig import query, execute, DB_CONFIG
+from typing import Annotated
+from dbconfig import query, execute, DB_CONFIG, purchase
 # uvicorn main:app --reload
 
 
@@ -57,6 +59,18 @@ def verify_admin_role(token: str = Depends(oauth2_scheme)):
         raise HTTPException(status_code=401, detail="Token has expired")
     except jwt.InvalidTokenError:
         raise HTTPException(status_code=401, detail="Invalid token")
+    
+def verify_user(token: Annotated[str, Depends(oauth2_scheme)]):
+    try:
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        if payload:
+            return payload
+        else:
+            raise HTTPException(status_code=403, detail="User privileges required")
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token has expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 @app.post('/api/auth/login')
 def login(data: LoginData):
@@ -91,9 +105,7 @@ def signup(data: User):
     except Exception as e:
         return {"error": f"Unexpected error: {str(e)}"}
 
-@app.get('/api/cart/{user_id}')
-def get_cart(user_id: int):
-    pass
+
 
 
 
@@ -213,8 +225,32 @@ async def delete_item(item_id: int, token: str = Depends(oauth2_scheme)):
     except Exception as e:
         return {"error": str(e)}
 
-
-# user routes 
+@app.post('/api/singlepurchase')
+async def single_purchase(purchaseproperties: Dict[str, Any], token: str = Depends(oauth2_scheme)):
+    connection = None
+    try:
+        payload = verify_user(token)
+        item_id = purchaseproperties.get("item_id")
+        quantity = purchaseproperties.get("quantity")
+        total = purchaseproperties.get("total")
+        tax_rate = purchaseproperties.get("tax_rate") or 0.0
+        email = payload.get("email")
+        
+        purchase(item_id, quantity, email, total)
+        return {"message": "Purchase successful"}
+        
+        
+        
+    except Exception as e:
+        if connection:
+            await connection.rollback()
+        return {"error": str(e)}
+    finally:
+        if connection:
+            await connection.close()
+        
+       
+# user routes websockets
 
 @app.get('/api/items')
 async def get_items():

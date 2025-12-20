@@ -72,7 +72,7 @@ EXECUTE FUNCTION notify_item_update();
 ---------------------------------------------------------
 CREATE TABLE IF NOT EXISTS "order" (
     id BIGSERIAL PRIMARY KEY,
-    customer_id BIGINT NULL,
+    customer_email TEXT NULL references "user_account"(email) ON DELETE SET NULL,
     status TEXT NOT NULL DEFAULT 'draft',
     total_price NUMERIC(14,2) DEFAULT 0.00,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -84,8 +84,8 @@ CREATE TABLE IF NOT EXISTS order_item (
     order_id BIGINT NOT NULL REFERENCES "order"(id) ON DELETE CASCADE,
     item_id BIGINT NOT NULL REFERENCES item(id) ON DELETE RESTRICT,
     unit_price NUMERIC(12,2) NOT NULL,
-    quantity INTEGER NOT NULL CHECK (quantity > 0),
-    line_total NUMERIC(14,2) NOT NULL,
+    quantity INTEGER NOT NULL CHECK (quantity >= 0),
+    item_total NUMERIC(14,2) NOT NULL GENERATED ALWAYS AS (unit_price * quantity) STORED,
     created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
@@ -274,7 +274,7 @@ RETURNS VOID AS $$
 DECLARE
     new_total NUMERIC;
 BEGIN
-    SELECT COALESCE(SUM(line_total),0)
+    SELECT COALESCE(SUM(item_total),0)
     INTO new_total
     FROM order_item
     WHERE order_id = p_order_id;
