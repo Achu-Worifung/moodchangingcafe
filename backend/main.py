@@ -335,16 +335,134 @@ async def item_websocket(websocket: WebSocket, item_id: int):
     finally:
         connected_clients.discard((websocket, item_id))
         await websocket.close()
+
+# order websocket
+order_clients: set[tuple[WebSocket, str]] = set()
+
+@app.websocket("/ws/orders/{token}")
+async def orders_websocket(websocket: WebSocket, token: str):
+    await websocket.accept()
+    
+    try:
+        # Decode token to get user email
+        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
+        email = payload.get("email")
+        
+        if not email:
+            await websocket.close(code=1008, reason="Invalid token")
+            return
+        
+        # Add client with their email
+        order_clients.add((websocket, email))
+        print(f"WebSocket connected for user: {email}")
+        
+        # Send initial data
+        orders = query(
+            "SELECT id, customer_email, status, total_price, created_at, updated_at FROM \"order\" WHERE customer_email = %s ORDER BY created_at DESC",
+            (email,)
+        )
+        
+        current_orders = []
+        old_receipts = []
+        
+        for order in orders:
+            order_data = {
+                "id": order[0],
+                "customer_email": order[1],
+                "status": order[2],
+                "total_price": float(order[3]) if order[3] else 0.0,
+                "created_at": order[4].isoformat() if order[4] else None,
+                "updated_at": order[5].isoformat() if order[5] else None
+            }
+            
+            if order[2] in ['picked up']:
+                old_receipts.append(order_data)
+            else:
+                current_orders.append(order_data)
+        
+        await websocket.send_json({
+            "orders": current_orders,
+            "old_reciepts": old_receipts
+        })
+        
+        # Keep connection alive
+        while True:
+            await websocket.receive_text()
+            
+    except jwt.InvalidTokenError:
+        await websocket.close(code=1008, reason="Invalid token")
+    except WebSocketDisconnect:
+        print(f"WebSocket disconnected for user: {email if 'email' in locals() else 'unknown'}")
+    finally:
+        if 'email' in locals():
+            order_clients.discard((websocket, email))
+        await websocket.close()
+
 async def listen_to_db():
     conn = await asyncpg.connect(**DB_CONFIG)
     print("Listening to database notifications...")
-    async def handler(connection, pid, channel, payload):
+    
+    async def item_handler(connection, pid, channel, payload):
         print(f"Received notification on channel {channel}: {payload}")
         data = json.loads(payload)
         for ws, ws_item_id in connected_clients:
             if ws_item_id == data['item_id']:
                 await ws.send_json(data)
-    await conn.add_listener('item_updates', handler)
+    
+    async def order_handler(connection, pid, channel, payload):
+        print(f"Received order notification: {payload}")
+        data = json.loads(payload)
+        
+        # Get the order details to find customer email
+        order_id = data.get('order_id')
+        if order_id:
+            orders = query(
+                "SELECT id, customer_email, status, total_price, created_at, updated_at FROM \"order\" WHERE id = %s",
+                (order_id,)
+            )
+            
+            if orders:
+                order = orders[0]
+                customer_email = order[1]
+                
+                # Send update to all connected clients for this user
+                for ws, email in order_clients:
+                    if email == customer_email:
+                        # Fetch all orders for this user
+                        user_orders = query(
+                            "SELECT id, customer_email, status, total_price, created_at, updated_at FROM \"order\" WHERE customer_email = %s ORDER BY created_at DESC",
+                            (email,)
+                        )
+                        
+                        current_orders = []
+                        old_receipts = []
+                        
+                        for user_order in user_orders:
+                            order_data = {
+                                "id": user_order[0],
+                                "customer_email": user_order[1],
+                                "status": user_order[2],
+                                "total_price": float(user_order[3]) if user_order[3] else 0.0,
+                                "created_at": user_order[4].isoformat() if user_order[4] else None,
+                                "updated_at": user_order[5].isoformat() if user_order[5] else None
+                            }
+                            
+                            if user_order[2] in ['picked up']:
+                                old_receipts.append(order_data)
+                            else:
+                                current_orders.append(order_data)
+                        
+                        try:
+                            await ws.send_json({
+                                "orders": current_orders,
+                                "old_reciepts": old_receipts
+                            })
+                        except Exception as e:
+                            print(f"Error sending order update: {e}")
+    
+    await conn.add_listener('item_updates', item_handler)
+    await conn.add_listener('order_changed', order_handler)
+    
     while True:
         await asyncio.sleep(60)  # Keep the connection alive
         

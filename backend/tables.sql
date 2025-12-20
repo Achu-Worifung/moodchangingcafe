@@ -97,7 +97,20 @@ CREATE INDEX IF NOT EXISTS idx_order_item_item ON order_item(item_id);
 ---------------------------------------------------------
 -- TRIGGERS FOR UPDATED_AT
 ---------------------------------------------------------
+DROP TRIGGER IF EXISTS order_set_updated_at ON "order";
+DROP TRIGGER IF EXISTS order_item_set_updated_at ON order_item;
+DROP FUNCTION IF EXISTS trg_order_updated_at();
+DROP FUNCTION IF EXISTS trg_order_item_updated_at();
+
 CREATE OR REPLACE FUNCTION trg_order_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at := now();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE OR REPLACE FUNCTION trg_order_item_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at := now();
@@ -113,7 +126,7 @@ EXECUTE FUNCTION trg_order_updated_at();
 CREATE TRIGGER order_item_set_updated_at
 BEFORE UPDATE ON order_item
 FOR EACH ROW
-EXECUTE FUNCTION trg_order_updated_at();
+EXECUTE FUNCTION trg_order_item_updated_at();
 
 
 ---------------------------------------------------------

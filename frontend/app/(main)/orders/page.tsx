@@ -33,31 +33,29 @@ export default function Orders() {
     async function orderTracking()
     {
         const socket = new WebSocket(`ws://127.0.0.1:8000/ws/orders/${token}`);
-        socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        console.log("WebSocket message received:", data);
-        setCurrOrders(data.currOrders);
-        setOldReciepts(data.oldReciepts);
-        };
+        
         socket.onopen = () => {
-        console.log("WebSocket connection opened");
+            console.log("WebSocket connection opened: Orders tracking");
         };
-        socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        };
-        socket.onclose = () => {
-        console.log("WebSocket connection closed");
-        orderTracking();
-        };
-        socket.addEventListener('message', (event) => {
+        
+        socket.onmessage = (event) => {
             const data = JSON.parse(event.data);
             console.log("WebSocket message received:", data);
-            setCurrOrders(data.currOrders);
-            setOldReciepts(data.oldReciepts);
-        });
+            setCurrOrders(data.orders);
+            setOldReciepts(data.old_reciepts);
+        };
+        
+        socket.onerror = (error) => {
+            console.error("WebSocket error:", error);
+        };
+        
+        socket.onclose = () => {
+            console.log("WebSocket connection closed: Orders tracking");
+            // Don't reconnect immediately - let user manually reconnect or refresh
+        };
     }
     fetchOrders();
-    // orderTracking();
+    orderTracking();
   }, [token]);
   return (
     <div className="container mx-auto px-4 py-8">
