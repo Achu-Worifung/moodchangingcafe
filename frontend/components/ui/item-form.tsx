@@ -7,8 +7,19 @@ import { Input } from "@components/ui/input";
 import { ItemFormProps } from "@/lib/types";
 import { Item } from "@radix-ui/react-dropdown-menu";
 import { useParams } from "next/navigation";
+import { useAuth } from "@/app/context/authContext";
 
-import {collection, addDoc, serverTimestamp, doc, DocumentData, DocumentReference, FieldValue, setDoc as firebaseSetDoc} from "firebase/firestore";
+
+import {
+  collection,
+  addDoc,
+  serverTimestamp,
+  doc,
+  DocumentData,
+  DocumentReference,
+  FieldValue,
+  setDoc as firebaseSetDoc,
+} from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { doGetUserRole } from "@/lib/auth";
 
@@ -23,45 +34,46 @@ export function ItemForm() {
   const [itemCategory, setItemCategory] = useState("");
   const [itemStock, setItemStock] = useState("");
 
+  const { currentUser } = useAuth();
+  const uid = currentUser?.uid;
 
+  // Fetch item details if editing an existing item
+  useEffect(() => {
+    if (!item) return;
 
-  if (item) {
     async function fetchItemDetails() {
-      const res = await fetch(`http://127.0.0.1:8000/api/admin/item/${item}`);
-      if (!res.ok) {
-        toast.error("Failed to fetch item details. Please try again.");
-        return;
+      try {
+        const res = await fetch(`http://127.0.0.1:8000/api/admin/item/${item}`);
+        if (!res.ok) {
+          toast.error("Failed to fetch item details. Please try again.");
+          return;
+        }
+        const data = await res.json();
+        setItemName(data.item.name);
+        setItemPrice(data.item.unit_price);
+        setItemDescription(data.item.description);
+        setItemCategory(data.item.category);
+        setItemStock(data.item.quantity_in_stock);
+        setItemImage(data.item.img);
+        console.log("data from fetchItemDetails:", data);
+      } catch (error) {
+        console.error("Error fetching item details:", error);
+        toast.error("Failed to fetch item details.");
       }
-      const data = await res.json();
-      setItemName(data.item.name);
-      setItemPrice(data.item.unit_price);
-      setItemDescription(data.item.description);
-      setItemCategory(data.item.category);
-      setItemStock(data.item.quantity_in_stock);
-      setItemImage(data.item.img);
-      console.log("data from fetchItemDetails:", data);
     }
     fetchItemDetails();
-  }
-
-
+  }, [item]);
 
   async function handleSubmit() {
+    if (!uid) {
+      toast.error("You must be signed in to add items.");
+      return;
+    }
     if (
       itemName === "" ||
       itemPrice === "" ||
-      itemDescription === "" ||
-      itemCategory === ""
+      itemDescription === ""
     ) {
-      console.log("categories:", itemCategory);
-      console.log(
-        itemName,
-        itemImage,
-        itemPrice,
-        itemDescription,
-        itemCategory,
-        itemStock
-      );
       toast.error("All fields are required.");
       return;
     }
@@ -72,29 +84,35 @@ export function ItemForm() {
     }
     setLoading(true);
     try {
-      // if (userRole !== "admin" && userRole !== "staff") {
-      //   toast.error("You do not have permission to add items.");
-      //   setLoading(false);
-      //   return;
-      // }
-      try {
-        const docRef = doc(db, "items", itemName);
-        await firebaseSetDoc(docRef, {
-          name: itemName,
-          image: itemImage ? itemImage.name : "",
-          unitPrice: Number(itemPrice),
-          description: itemDescription,
-          stock: Number(itemStock),
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-          tax: 0,
-        });
-      }catch (fireErr) {
-        console.error("Error adding document: ", fireErr);
-        throw new Error(`Failed to add item to Firestore: ${fireErr?.message ?? fireErr}`);
+      const userRole = await doGetUserRole(uid);
+      console.log("User role:", userRole);
+      if (userRole !== "admin" && userRole !== "staff") {
+        toast.error("You do not have permission to add items.");
+        setLoading(false);
+        return;
       }
-
-    }catch (error) {
+      try {
+        await addDoc(collection(db, "items"), {
+          name: itemName,
+          img: itemImage ? itemImage.name : "",
+          unit_price: Number(itemPrice),
+          description: itemDescription,
+          category: itemCategory,
+          stock: Number(itemStock),
+          tax: 0,
+          created_at: serverTimestamp(),
+          updated_at: serverTimestamp(),
+        });
+        toast.success("Item added successfully.");
+      } catch (fireErr: any) {
+        if (fireErr?.code === "permission-denied") {
+          toast.error("Insufficient permissions to add items (Firestore rules).");
+        } else {
+          toast.error(fireErr?.message ?? "Failed to add item.");
+        }
+        console.error("Error adding document:", fireErr);
+      }
+    } catch (error) {
       console.error("Error adding item:", error);
       toast.error("Failed to add item. Please try again.");
     }

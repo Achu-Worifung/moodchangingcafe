@@ -1,3 +1,4 @@
+'use client';
 import { onAuthStateChanged, User } from "firebase/auth";
 import React, {
     createContext,
