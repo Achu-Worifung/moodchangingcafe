@@ -58,39 +58,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { toast } from "sonner";
-
-const data: Payment[] = [
-  {
-    id: "m5gr84i9",
-    amount: 316,
-    status: "success",
-    email: "ken99@example.com",
-  },
-  {
-    id: "3u1reuv4",
-    amount: 242,
-    status: "success",
-    email: "Abe45@example.com",
-  },
-  {
-    id: "derv1ws0",
-    amount: 837,
-    status: "processing",
-    email: "Monserrat44@example.com",
-  },
-  {
-    id: "5kma53ae",
-    amount: 874,
-    status: "success",
-    email: "Silas22@example.com",
-  },
-  {
-    id: "bhqecj4p",
-    amount: 721,
-    status: "failed",
-    email: "carmella@example.com",
-  },
-];
+import { db } from "@/lib/firebase";
+import { ref, deleteObject } from "firebase/storage";
+import { deleteDoc, doc } from "firebase/firestore";
+import { getStorage } from "firebase/storage";
 
 export type Payment = {
   id: string;
@@ -227,38 +198,39 @@ export function createItemColumns(token: string): ColumnDef<Item>[] {
       },
     },
     {
-      accessorKey: "quantity_in_stock",
+      accessorKey: "stock",
       header: "Stock",
     },
     {
-      accessorKey: "tax_rate",
+      accessorKey: "tax",
       header: "Tax Rate",
     },
-    {
-      accessorKey: "category",
-      header: "Category",
-    },
+
     {
       id: "actions",
       enableHiding: false,
-      
+
       cell: ({ row }) => {
         const item = row.original;
 
-        function deleteItem(itemId: string) {
-          fetch(`http://127.0.0.1:8000/api/admin/item/${itemId}`, {
-            method: "DELETE",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-            },
-          });
-          toast.success("Item deleted successfully.", {
-            duration: 2000,
-          });
-          setTimeout(() => {
-            //refresh the page
-          }, 2000);
+        async function deleteItem(itemId: string, itemImg: string) {
+          try {
+            await deleteDoc(doc(db, "items", itemId));
+            // Delete image from Firebase Storage
+            const storage = getStorage();
+
+            try {
+              const imageRef = ref(storage, itemImg);
+              await deleteObject(imageRef);
+            } catch (error) {
+              console.error("Error deleting image from storage:", error);
+            }
+            toast.success("Item deleted successfully.");
+          } catch (error) {
+            console.error("Error deleting item:", error);
+            toast.error("Failed to delete item.");
+            return;
+          }
         }
 
         return (
@@ -284,7 +256,9 @@ export function createItemColumns(token: string): ColumnDef<Item>[] {
                 </AlertDialogTrigger>
                 <AlertDialogContent>
                   <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogTitle>
+                      Are you absolutely sure?
+                    </AlertDialogTitle>
                     <AlertDialogDescription>
                       This action cannot be undone. This will permanently delete
                       the item and remove its data from our servers.
@@ -292,7 +266,9 @@ export function createItemColumns(token: string): ColumnDef<Item>[] {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => deleteItem(item.id)}>
+                    <AlertDialogAction
+                      onClick={() => deleteItem(item.id, item.img)}
+                    >
                       Continue
                     </AlertDialogAction>
                   </AlertDialogFooter>
@@ -458,8 +434,7 @@ export function DataTableDemo() {
   );
 }
 
-export function ItemTable({ data }: { data: Item[] }) {
-
+export function ItemTable({ data, token }: { data: Item[]; token: string }) {
   const [searchTerm, setSearchTerm] = useState("");
   const [sortKey, setSortKey] = useState<keyof Item | "">("");
 
@@ -484,7 +459,7 @@ export function ItemTable({ data }: { data: Item[] }) {
     });
   }, [filteredData, sortKey]);
 
-  const columns = useMemo(() => createItemColumns(token), [token]);
+  const columns = useMemo(() => createItemColumns(token), []);
 
   const table = useReactTable({
     data: sortedData,

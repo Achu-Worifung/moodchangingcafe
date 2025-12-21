@@ -5,29 +5,29 @@ import { ItemFormProps } from "@/lib/types";
 import { toast } from "sonner";
 import {ItemTable} from "@/components/ui/item-table";
 import Loading from "@/app/loading";
+import { collection, getDocs } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 export default function EditItemPage() {
-  const [loading, setLoading] = useState(false);
-  const [items, setItems] = useState<ItemFormProps[]>([]);
-
-  useEffect(() => {
-    async function fetchItems() {
-      setLoading(true);
-      try {
-        const res = await fetch("http://127.0.0.1:8000/api/admin/itemsforadmin");
-        if (!res.ok) {
-          toast.error("Failed to fetch items. Please try again.");
+  const [items, setItems] = useState<{ id: string; [key: string]: any }[]>([]);
+    const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      async function fetchItems() {
+        try {
+          const snapshot = await getDocs(collection(db, "items"));
+          const items = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }));
+          setItems(items);
+          console.log("Fetched items:", items);
+        } catch (error) {
+          console.error("Error fetching items:", error);
         }
-        const data = await res.json();
-        console.log("Fetched items:", data.items);
-        setItems(data.items);
-      } catch (e) {
-        toast.error("Failed to fetch items. Please try again.");
-      } finally {
-        setLoading(false);
       }
-    }
-    fetchItems();
-  }, []);
+      fetchItems();
+      setLoading(false);
+    }, []);
   if (loading) {
     return (
       <div>

@@ -7,16 +7,11 @@ import { Input } from "@components/ui/input";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/app/context/authContext";
 
-
-import {
-  collection,
-  addDoc,
-  serverTimestamp,
-
-} from "firebase/firestore";
+import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { doGetUserRole } from "@/lib/auth";
-import {getStorage, ref, uploadBytes, getDownloadURL} from "firebase/storage";
+import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { query, where, getDocs } from "firebase/firestore";
 
 export function ItemForm() {
   const { item } = useParams();
@@ -38,19 +33,23 @@ export function ItemForm() {
 
     async function fetchItemDetails() {
       try {
-        const res = await fetch(`http://127.0.0.1:8000/api/admin/item/${item}`);
-        if (!res.ok) {
-          toast.error("Failed to fetch item details. Please try again.");
-          return;
-        }
-        const data = await res.json();
-        setItemName(data.item.name);
-        setItemPrice(data.item.unit_price);
-        setItemDescription(data.item.description);
-        setItemCategory(data.item.category);
-        setItemStock(data.item.quantity_in_stock);
-        setItemImage(data.item.img);
-        console.log("data from fetchItemDetails:", data);
+        const decodedItemName = decodeURIComponent(item as string);
+        const q = query(
+          collection(db, "items"),
+          where("name", "==", decodedItemName)
+        );
+        const snapshot = await getDocs(q);
+        const items = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setItemName(items[0].name);
+        setItemPrice(items[0].unit_price);
+        setItemDescription(items[0].description);
+        setItemCategory(items[0].category);
+        setItemStock(items[0].quantity_in_stock);
+        setItemImage(items[0].img);
+        console.log("data from fetchItemDetails:", items[0]);
       } catch (error) {
         console.error("Error fetching item details:", error);
         toast.error("Failed to fetch item details.");
@@ -64,11 +63,7 @@ export function ItemForm() {
       toast.error("You must be signed in to add items.");
       return;
     }
-    if (
-      itemName === "" ||
-      itemPrice === "" ||
-      itemDescription === ""
-    ) {
+    if (itemName === "" || itemPrice === "" || itemDescription === "") {
       toast.error("All fields are required.");
       return;
     }
@@ -90,14 +85,18 @@ export function ItemForm() {
         const storage = getStorage();
         let downloadURL = "";
         if (itemImage) {
-          const storageRef = ref(storage, `items/${itemImage.name}_${Date.now()}`);
+          const storageRef = ref(
+            storage,
+            `items/${itemImage.name}_${Date.now()}`
+          );
           await uploadBytes(storageRef, itemImage);
           downloadURL = await getDownloadURL(storageRef);
           console.log("Download URL:", downloadURL);
         }
         console.log("Adding item with data:", {
           name: itemName,
-          img: downloadURL || "",});
+          img: downloadURL || "",
+        });
         await addDoc(collection(db, "items"), {
           name: itemName,
           img: downloadURL || "",
@@ -110,9 +109,17 @@ export function ItemForm() {
           updated_at: serverTimestamp(),
         });
         toast.success("Item added successfully.");
+        setItemName("");
+        setItemImage(null);
+        setItemPrice("");
+        setItemDescription("");
+        setItemCategory("");
+        setItemStock("");
       } catch (fireErr: any) {
         if (fireErr?.code === "permission-denied") {
-          toast.error("Insufficient permissions to add items (Firestore rules).");
+          toast.error(
+            "Insufficient permissions to add items (Firestore rules)."
+          );
         } else {
           toast.error(fireErr?.message ?? "Failed to add item.");
         }
@@ -189,5 +196,3 @@ export function ItemForm() {
     </div>
   );
 }
-
-
