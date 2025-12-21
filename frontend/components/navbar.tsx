@@ -1,6 +1,7 @@
 import { Logo } from "./logo";
 import { Cart } from "./cart";
 import { User } from "@components/user";
+
 export function Navbar()
 {
     return (
