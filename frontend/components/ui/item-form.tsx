@@ -4,8 +4,6 @@ import { toast } from "sonner";
 import { Label } from "@components/ui/label";
 import { Button } from "@components/ui/button";
 import { Input } from "@components/ui/input";
-import { ItemFormProps } from "@/lib/types";
-import { Item } from "@radix-ui/react-dropdown-menu";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/app/context/authContext";
 
@@ -14,14 +12,11 @@ import {
   collection,
   addDoc,
   serverTimestamp,
-  doc,
-  DocumentData,
-  DocumentReference,
-  FieldValue,
-  setDoc as firebaseSetDoc,
+
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { doGetUserRole } from "@/lib/auth";
+import {getStorage, ref, uploadBytes, getDownloadURL} from "firebase/storage";
 
 export function ItemForm() {
   const { item } = useParams();
@@ -92,9 +87,20 @@ export function ItemForm() {
         return;
       }
       try {
+        const storage = getStorage();
+        let downloadURL = "";
+        if (itemImage) {
+          const storageRef = ref(storage, `items/${itemImage.name}_${Date.now()}`);
+          await uploadBytes(storageRef, itemImage);
+          downloadURL = await getDownloadURL(storageRef);
+          console.log("Download URL:", downloadURL);
+        }
+        console.log("Adding item with data:", {
+          name: itemName,
+          img: downloadURL || "",});
         await addDoc(collection(db, "items"), {
           name: itemName,
-          img: itemImage ? itemImage.name : "",
+          img: downloadURL || "",
           unit_price: Number(itemPrice),
           description: itemDescription,
           category: itemCategory,
