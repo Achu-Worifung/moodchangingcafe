@@ -8,6 +8,10 @@ import { ItemFormProps } from "@/lib/types";
 import { Item } from "@radix-ui/react-dropdown-menu";
 import { useParams } from "next/navigation";
 
+import {collection, addDoc, serverTimestamp} from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { useAuth } from "@/app/context/authContext";
+
 export function ItemForm() {
   const { item } = useParams();
   console.log("Editing item id:", item);

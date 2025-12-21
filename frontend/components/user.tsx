@@ -20,7 +20,13 @@ export function User() {
   async function signOut() {
     try {
       await doSignOut();
-      router.push("/")
+      if (window.location.href !== "/") {
+        router.push("/");
+      }
+      else 
+      {
+        router.refresh();
+      }
     } catch (error) {
       console.error("Error signing out:", error);
     }
