@@ -7,7 +7,7 @@ import { Input } from "@components/ui/input";
 import { useParams } from "next/navigation";
 import { useAuth } from "@/app/context/authContext";
 
-import { collection, addDoc, serverTimestamp } from "firebase/firestore";
+import { collection, addDoc, serverTimestamp, updateDoc, doc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { doGetUserRole } from "@/lib/auth";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -44,10 +44,9 @@ export function ItemForm() {
           ...doc.data(),
         }));
         setItemName(items[0].name);
-        setItemPrice(items[0].unit_price);
+        setItemPrice(items[0].unit_price.toString());
         setItemDescription(items[0].description);
-        setItemCategory(items[0].category);
-        setItemStock(items[0].quantity_in_stock);
+        setItemStock(items[0].stock.toString());
         setItemImage(items[0].img);
         console.log("data from fetchItemDetails:", items[0]);
       } catch (error) {
@@ -97,18 +96,39 @@ export function ItemForm() {
           name: itemName,
           img: downloadURL || "",
         });
-        await addDoc(collection(db, "items"), {
-          name: itemName,
-          img: downloadURL || "",
-          unit_price: Number(itemPrice),
-          description: itemDescription,
-          category: itemCategory,
-          stock: Number(itemStock),
-          tax: 0,
-          created_at: serverTimestamp(),
-          updated_at: serverTimestamp(),
-        });
-        toast.success("Item added successfully.");
+        
+        // Check if item with same name already exists
+        const q = query(
+          collection(db, "items"),
+          where("name", "==", itemName)
+        );
+        const snapshot = await getDocs(q);
+        
+        if (!snapshot.empty) {
+          // Item exists, update it
+          const existingDoc = snapshot.docs[0];
+          await updateDoc(doc(db, "items", existingDoc.id), {
+            img: downloadURL || existingDoc.data().img,
+            unit_price: Number(itemPrice),
+            description: itemDescription,
+            stock: Number(itemStock),
+            updated_at: serverTimestamp(),
+          });
+          toast.success("Item updated successfully.");
+        } else {
+          // Item doesn't exist, create new
+          await addDoc(collection(db, "items"), {
+            name: itemName,
+            img: downloadURL || "",
+            unit_price: Number(itemPrice),
+            description: itemDescription,
+            stock: Number(itemStock),
+            tax: 0,
+            created_at: serverTimestamp(),
+            updated_at: serverTimestamp(),
+          });
+          toast.success("Item added successfully.");
+        }
         setItemName("");
         setItemImage(null);
         setItemPrice("");
@@ -160,7 +180,7 @@ export function ItemForm() {
         <Label htmlFor="itemPrice">Item Price</Label>
         <Input
           id="itemPrice"
-          type="number"
+          type="text"
           value={itemPrice}
           onChange={(e) => setItemPrice(e.target.value)}
         />

@@ -276,7 +276,7 @@ export function createItemColumns(token: string): ColumnDef<Item>[] {
               </AlertDialog>
               <DropdownMenuItem>
                 <Link
-                  href={{ pathname: `/admin/edit-item/${item.id}` }}
+                  href={{ pathname: `/admin/edit-item/${item.name}` }}
                   className=" cursor-pointer my-2 w-full h-full"
                 >
                   Edit Item

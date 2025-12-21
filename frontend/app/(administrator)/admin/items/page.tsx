@@ -23,10 +23,11 @@ export default function EditItemPage() {
           console.log("Fetched items:", items);
         } catch (error) {
           console.error("Error fetching items:", error);
+        } finally {
+          setLoading(false);
         }
       }
       fetchItems();
-      setLoading(false);
     }, []);
   if (loading) {
     return (
