@@ -11,12 +11,21 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import Link from "next/link";
-import { doGetCurrentUser, doSignOut } from "@/lib/auth";
+import { doSignOut } from "@/lib/auth";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { useState, useEffect } from "react";
 
 export function User() {
-
-  const currentUser = doGetCurrentUser();
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setCurrentUser(user);
+    });
+    return () => unsubscribe();
+  }, []);
   async function signOut() {
     try {
       await doSignOut();
@@ -44,6 +53,10 @@ export function User() {
           <DropdownMenuContent>
             <DropdownMenuLabel>My Account</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem>
+              <Link href="/orders" className="w-full text-white bg-black 
+              hover:bg-gray-800 focus:ring-4 focus:outline-none focus:ring-gray-300 font-medium rounded-lg text-sm px-5 py-2.5 text-center">Orders</Link>
+            </DropdownMenuItem>
             <DropdownMenuItem>
               <Button className="w-full" onClick={signOut}>Logout</Button>
             </DropdownMenuItem>
