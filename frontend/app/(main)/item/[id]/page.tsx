@@ -7,6 +7,7 @@ import { hexToBase64 } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { onSnapshot } from "firebase/firestore";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -40,6 +41,7 @@ export default function Item() {
   const router = useRouter();
   const[purchasing, setPurchasing] = useState<boolean>(false);
   const {currentUser, userLoggedIn} = useAuth();
+  const[purchase, setPurchase] = useState<boolean>(false);
 
 
   useEffect(() => {
@@ -183,6 +185,7 @@ async function handlePurchase() {
 
     toast.success("Purchase successful!");
     // router.push("/orders");
+    setPurchase(true);
 
   } catch (error) {
     toast.error("Purchase failed. Please try again.");
@@ -208,6 +211,26 @@ async function handlePurchase() {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction onClick={() => router.push("/signin")}>
                 Sign in
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      )}
+      {
+        purchase && (
+          <AlertDialog open={purchase} onOpenChange={setPurchase}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>
+                Thank you for your purchase!
+              </AlertDialogTitle>
+              <AlertDialogDescription>
+                We’ll notify you when your order is on the way, so you can pay at the counter.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogAction onClick={() => router.push("/")}>
+                Ok
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
