@@ -51,7 +51,7 @@ export default function Home() {
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
         {items && items.map((item) => (
           <div key={item.id} className="border rounded-lg p-4 shadow-md cursor-pointer hover:shadow-lg transition-shadow ease-in-out"
-          onClick={() => router.push(`/item/${item.id}`)} >
+          onClick={() => router.push(`/item/${item.name}`)} >
             <img
               src={ item.img}
               alt={item.name || "Item image"}
@@ -59,10 +59,9 @@ export default function Home() {
             />
             <h2 className="text-lg font-semibold">{item.name}</h2>
             {/* <p className="text-sm text-gray-600">{item.description}</p> */}
-            <p className="text-sm font-medium mt-2">Price: ${item.unit_price}</p>
+            <p className="text-sm font-medium mt-2">Price: ${item.unitPrice}</p>
             {/* <p className="text-sm">Stock: {item.quantity_in_stock}</p> */}
             {/* <p className="text-sm">Tax Rate: {item.tax_rate}%</p> */}
-            <p className="text-sm">Category: {item.category}</p>
           </div>
         ))}
       </div>

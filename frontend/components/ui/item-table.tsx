@@ -165,9 +165,9 @@ export type Item = {
   id: string;
   name: string;
   description: string;
-  unit_price: number;
-  quantity_in_stock: number;
-  tax_rate: number;
+  unitPrice: number;
+  stock: number;
+  tax: number;
   category: string;
 };
 
@@ -186,10 +186,10 @@ export function createItemColumns(token: string): ColumnDef<Item>[] {
       header: "Description",
     },
     {
-      accessorKey: "unit_price",
+      accessorKey: "unitPrice",
       header: "Unit Price",
       cell: ({ row }) => {
-        const price = parseFloat(row.getValue("unit_price"));
+        const price = parseFloat(row.getValue("unitPrice"));
 
         return new Intl.NumberFormat("en-US", {
           style: "currency",
@@ -483,10 +483,9 @@ export function ItemTable({ data, token }: { data: Item[]; token: string }) {
           <SelectContent>
             <SelectGroup>
               <SelectLabel>Sort Options</SelectLabel>
-              <SelectItem value="unit_price">Price</SelectItem>
-              <SelectItem value="quantity_in_stock">Stock</SelectItem>
-              <SelectItem value="tax_rate">Tax Rate</SelectItem>
-              <SelectItem value="category">Category</SelectItem>
+              <SelectItem value="unitPrice">Price</SelectItem>
+              <SelectItem value="stock">Stock</SelectItem>
+              <SelectItem value="tax">Tax Rate</SelectItem>
             </SelectGroup>
           </SelectContent>
         </Select>
@@ -539,3 +538,5 @@ export function ItemTable({ data, token }: { data: Item[]; token: string }) {
     </div>
   );
 }
+
+

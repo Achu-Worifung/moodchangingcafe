@@ -44,7 +44,7 @@ export function ItemForm() {
           ...doc.data(),
         }));
         setItemName(items[0].name);
-        setItemPrice(items[0].unit_price.toString());
+        setItemPrice(items[0].unitPrice.toString());
         setItemDescription(items[0].description);
         setItemStock(items[0].stock.toString());
         setItemImage(items[0].img);
@@ -109,10 +109,10 @@ export function ItemForm() {
           const existingDoc = snapshot.docs[0];
           await updateDoc(doc(db, "items", existingDoc.id), {
             img: downloadURL || existingDoc.data().img,
-            unit_price: Number(itemPrice),
+            unitPrice: Number(itemPrice),
             description: itemDescription,
             stock: Number(itemStock),
-            updated_at: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           });
           toast.success("Item updated successfully.");
         } else {
@@ -120,12 +120,12 @@ export function ItemForm() {
           await addDoc(collection(db, "items"), {
             name: itemName,
             img: downloadURL || "",
-            unit_price: Number(itemPrice),
+            unitPrice: Number(itemPrice),
             description: itemDescription,
             stock: Number(itemStock),
             tax: 0,
-            created_at: serverTimestamp(),
-            updated_at: serverTimestamp(),
+            createdAt: serverTimestamp(),
+            updatedAt: serverTimestamp(),
           });
           toast.success("Item added successfully.");
         }

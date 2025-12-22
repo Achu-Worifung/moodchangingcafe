@@ -47,7 +47,7 @@ export default function EditItemPage() {
             />
             <h2 className="text-lg font-semibold">{item.name}</h2>
             {/* <p className="text-sm text-gray-600">{item.description}</p> */}
-            <p className="text-sm font-medium mt-2">Price: ${item.unit_price}</p>
+            <p className="text-sm font-medium mt-2">Price: ${item.unitPrice}</p>
             {/* <p className="text-sm">Stock: {item.quantity_in_stock}</p> */}
             {/* <p className="text-sm">Tax Rate: {item.tax_rate}%</p> */}
             <p className="text-sm">Category: {item.category}</p>
