@@ -19,6 +19,7 @@ export default function Orders() {
   const { currentUser, userLoggedIn } = useAuth();
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
     async function fetchOrders() {
       const q = query(
         collection(db, "orders"),
@@ -35,6 +36,15 @@ export default function Orders() {
       );
       setOldReciepts(pastOrders);
       setCurrOrders(currentOrders);
+      unsubscribe = onSnapshot(collection(db, "orders"), (snapshot) => {
+        const updatedOrders = snapshot.docs
+          .map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          }))
+          .filter((order) => order.status !== "completed");
+        setCurrOrders(updatedOrders);
+      });
       console.log("Fetched user orders:", orders);
       setLoading(false);
     }
