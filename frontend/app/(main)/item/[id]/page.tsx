@@ -18,8 +18,16 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import {db, docs} from "@/lib/firebase";
-import { collection, doc, getDocs, query, serverTimestamp, setDoc, where, addDoc } from "@firebase/firestore";
+import {db,} from "@/lib/firebase";
+import { 
+  collection, 
+  query, 
+  where, 
+  getDocs, 
+  writeBatch, 
+  doc, 
+  serverTimestamp 
+} from "firebase/firestore";
 import { useAuth } from "@/app/context/authContext";
 export default function Item() {
   const pathname = usePathname();
@@ -35,10 +43,11 @@ export default function Item() {
 
 
   useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+
     async function fetchItem() {
       const decodeItemName = decodeURIComponent(id as string);
-      try 
-      {
+      try {
         const q = query(
           collection(db, "items"),
           where("name", "==", decodeItemName)
@@ -48,9 +57,23 @@ export default function Item() {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log("data from fetchItem:", items[0]);
-        setItem(items[0]);
-        setStock(items[0].stock);
+
+        if (!items[0]) {
+          setIsValid(false);
+          return;
+        }
+
+        const currentItem = items[0];
+        console.log("data from fetchItem:", currentItem);
+        setItem(currentItem);
+        setStock(currentItem.stock);
+
+        // Real-time stock updates via Firestore listener
+        unsubscribe = onSnapshot(doc(db, "items", currentItem.id), (snapshot) => {
+          const data = snapshot.data();
+          if (!data) return;
+          setStock(data.stock ?? 0);
+        });
       } catch (error) {
         toast.error("Failed to fetch item details.");
         setIsValid(false);
@@ -58,29 +81,13 @@ export default function Item() {
       }
     }
 
-    function openwebsocket() {
-      const socket = new WebSocket(`ws://127.0.0.1:8000/ws/item/${id}`);
-      socket.onmessage = (event) => {
-        const data = JSON.parse(event.data);
-        setStock(data.stock);
-        console.log("WebSocket message received:", data);
-      };
-      socket.onopen = () => {
-        console.log("WebSocket connection opened");
-      };
-      socket.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        //reconnect logic could be added here
-        socket.close();
-        openwebsocket();
-      };
-      // socket.onclose = () => {
-      //   console.log("WebSocket connection closed");
-      //   openwebsocket();
-      // };
-    }
     fetchItem();
-    // openwebsocket();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [id]);
 
   async function handleAddToCart() {
@@ -114,49 +121,76 @@ export default function Item() {
     window.dispatchEvent(new Event("cart-updated"));
     toast.success("Item added to cart");
   }
-  async function handlePurchase() {
-    setPurchasing(true);
-    if (!userLoggedIn || !currentUser) {
-      setSignInDialogOpen(true);
-      handleAddToCart();
+async function handlePurchase() {
+  setPurchasing(true);
+
+  if (!userLoggedIn || !currentUser) {
+    setSignInDialogOpen(true);
+    handleAddToCart();
+    setPurchasing(false);
+    return;
+  }
+
+  try {
+    // 1. First, find the item to get its Reference and current stock
+    const itemQuery = query(
+      collection(db, "items"),
+      where("name", "==", item.name)
+    );
+    const itemSnapshot = await getDocs(itemQuery);
+
+    if (itemSnapshot.empty) {
+      throw new Error("Item not found in database.");
+    }
+
+    const itemDoc = itemSnapshot.docs[0];
+    const itemRef = itemDoc.ref;
+    const currentStock = itemDoc.data().stock;
+
+    // 2. Client-side safety check
+    if (currentStock < quantity) {
+      toast.error("Not enough stock available.");
       setPurchasing(false);
       return;
     }
-    try 
-    {
-      await addDoc(
-        collection(db, 'orders'),
-        {
-          userId: currentUser.uid,
-          total: item.unitPrice * quantity,
-          items: [
-            {
-              itemName: item.name,
-              quantity: quantity,
-              unitPrice: item.unitPrice,
-            },
-          ],
-          email: currentUser.email || "",
-          status: 'received',
-          taxes: 0,
-          createdAt: serverTimestamp(),
-          updatedAt: serverTimestamp(),
-        }
-      )
-    }
-    catch(error)
-    {
-      toast.error("Purchase failed. Please try again.");
-      console.error("Error during purchase:", error);
-      return;
-    }
-    finally {
-      setPurchasing(false);
-    }
-    
+
+    // 3. Initialize a Write Batch
+    const batch = writeBatch(db);
+
+    // 4. Create the Order Document reference
+    const orderRef = doc(collection(db, 'orders'));
+    const orderData = {
+      userId: currentUser.uid,
+      total: item.unitPrice * quantity,
+      items: [{
+        itemName: item.name,
+        quantity: quantity,
+        unitPrice: item.unitPrice,
+      }],
+      email: currentUser.email || "",
+      status: 'received',
+      taxes: 0,
+      createdAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    // 5. Add both operations to the batch
+    batch.set(orderRef, orderData);
+    batch.update(itemRef, { stock: currentStock - quantity });
+
+    // 6. Commit the batch
+    await batch.commit();
+
     toast.success("Purchase successful!");
     // router.push("/orders");
+
+  } catch (error) {
+    toast.error("Purchase failed. Please try again.");
+    console.error("Error during purchase:", error);
+  } finally {
+    setPurchasing(false);
   }
+}
   return (
     <div>
       {signInDialogOpen && (
@@ -257,3 +291,5 @@ export default function Item() {
     </div>
   );
 }
+
+
