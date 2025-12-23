@@ -1,14 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
-import { ItemForm } from "@/components/ui/item-form";
 import { ItemFormProps } from "@/lib/types";
-import { toast } from "sonner";
 import { ItemTable } from "@/components/ui/item-table";
 import Loading from "@/app/loading";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 export default function EditItemPage() {
-  const [items, setItems] = useState<{ id: string; [key: string]: any }[]>([]);
+  const [items, setItems] = useState<ItemFormProps[] | null>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

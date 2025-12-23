@@ -4,6 +4,7 @@ export interface ItemFormProps {
     unitPrice ?: number | string;
     description ?: string;
     stock ?: number | string;
+    id ?: string;
 }
 
 export interface OrderProps {

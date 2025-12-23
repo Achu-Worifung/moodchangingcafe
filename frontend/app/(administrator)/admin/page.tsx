@@ -1,12 +1,11 @@
 "use client";
 import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
-import { collection, getDocs, query, where, Timestamp, onSnapshot } from "firebase/firestore";
+import { collection,  onSnapshot } from "firebase/firestore";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { useRouter } from "next/navigation";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
-import { ShoppingCart, Package, Users, TrendingUp, FileText, Plus } from "lucide-react";
+import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
+import { ShoppingCart, Package, TrendingUp, Plus } from "lucide-react";
 import Loading from "@/app/loading";
 
 export default function AdminPage() {

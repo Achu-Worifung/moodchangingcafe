@@ -57,6 +57,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { ItemFormProps } from "@/lib/types";
 import { toast } from "sonner";
 import { db } from "@/lib/firebase";
 import { ref, deleteObject } from "firebase/storage";
@@ -184,6 +185,16 @@ export function createItemColumns(token: string): ColumnDef<Item>[] {
     {
       accessorKey: "description",
       header: "Description",
+      cell: ({ row }) => {
+        return (
+          <div 
+            className="max-w-xs line-clamp-3 text-sm" 
+            title={row.getValue("description")}
+          >
+            {row.getValue("description")}
+          </div>
+        );
+      },
     },
     {
       accessorKey: "unitPrice",
@@ -434,9 +445,9 @@ export function DataTableDemo() {
   );
 }
 
-export function ItemTable({ data, token }: { data: Item[]; token: string }) {
+export function ItemTable({ data, token }: { data: ItemFormProps[]; token: string }) {
   const [searchTerm, setSearchTerm] = useState("");
-  const [sortKey, setSortKey] = useState<keyof Item | "">("");
+  const [sortKey, setSortKey] = useState<keyof ItemFormProps | "">("");
 
   const filteredData = useMemo(() => {
     return data.filter(
@@ -476,7 +487,7 @@ export function ItemTable({ data, token }: { data: Item[]; token: string }) {
           onChange={(e) => setSearchTerm(e.target.value)}
           className=""
         />
-        <Select onValueChange={(value) => setSortKey(value as keyof Item)}>
+        <Select onValueChange={(value) => setSortKey(value as keyof ItemFormProps)}>
           <SelectTrigger className="w-full max-w-2xs">
             <SelectValue placeholder="Sort by..." />
           </SelectTrigger>
