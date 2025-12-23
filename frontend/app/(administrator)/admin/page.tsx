@@ -117,7 +117,6 @@ export default function AdminPage() {
     { name: "Live Orders", path: "/admin/liveorders", icon: ShoppingCart, color: "bg-blue-100 text-blue-800" },
     { name: "All Items", path: "/admin/items", icon: Package, color: "bg-green-100 text-green-800" },
     { name: "Add Item", path: "/admin/additem", icon: Plus, color: "bg-purple-100 text-purple-800" },
-    { name: "View Users", path: "/admin/viewusers", icon: Users, color: "bg-yellow-100 text-yellow-800" },
   ];
 
   if (loading) {
@@ -202,7 +201,7 @@ export default function AdminPage() {
 
       {/* Quick Actions */}
       <h2 className="text-2xl font-bold mb-4">Quick Actions</h2>
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {adminRoutes.map((route) => (
           <Card
             key={route.path}
