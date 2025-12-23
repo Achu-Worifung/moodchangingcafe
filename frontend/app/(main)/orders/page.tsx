@@ -18,6 +18,7 @@ export default function Orders() {
   const [readyOrders, setReadyOrders] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const { currentUser, userLoggedIn } = useAuth();
+  console.log("User logged in status:", currentUser, userLoggedIn);
 
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;

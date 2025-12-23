@@ -204,15 +204,23 @@ export function ItemForm() {
           onChange={(e) => setItemStock(e.target.value)}
         />
       </div>
+      <div className="w-full flex gap-4 justify-center">
+
       <Button
         disabled={loading}
         onClick={() => {
           handleSubmit();
         }}
-        className="w-full max-w-xs"
-      >
+        className="w-full max-w-1/2"
+        >
         {loading ? "Adding Item..." : "Add Item"}
       </Button>
+      <Button
+         className="w-1/2"
+        onClick={() => {
+          window.history.back();
+        }}>Cancel</Button>
+        </div>
     </div>
   );
 }

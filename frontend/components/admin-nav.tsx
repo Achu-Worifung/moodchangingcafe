@@ -25,15 +25,15 @@ export function AdminNavBar() {
           </li>
           <li>
             <Link
-              href="/admin/products"
+              href="/admin/items"
               className="hover:underline underline-offset-2 "
             >
-              Products
+              Items
             </Link>
           </li>
           <li>
             <Link
-              href="/admin/orders"
+              href="/admin/liveorders"
               className="hover:underline underline-offset-2 "
             >
               Orders
@@ -62,15 +62,15 @@ export function AdminNavBar() {
               </li>
               <li>
                 <Link
-                  href="/admin/products"
+                  href="/admin/items"
                   className="hover:underline underline-offset-2 "
                 >
-                  Products
+                  Items
                 </Link>
               </li>
               <li>
                 <Link
-                  href="/admin/orders"
+                  href="/admin/liveorders"
                   className="hover:underline underline-offset-2 "
                 >
                   Orders
@@ -78,10 +78,10 @@ export function AdminNavBar() {
               </li>
               <li>
                 <Link
-                  href="/admin/users"
+                  href="/admin/add-item"
                   className="hover:underline underline-offset-2 "
                 >
-                  Users
+                  New Item
                 </Link>
               </li>
             </ul>
