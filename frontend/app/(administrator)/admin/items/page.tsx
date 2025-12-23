@@ -6,7 +6,7 @@ import Loading from "@/app/loading";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 export default function EditItemPage() {
-  const [items, setItems] = useState<ItemFormProps[] | null>([]);
+  const [items, setItems] = useState<ItemFormProps[] >([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
