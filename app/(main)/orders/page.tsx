@@ -23,37 +23,55 @@ export default function Orders() {
   useEffect(() => {
     let unsubscribe: (() => void) | undefined;
     async function fetchOrders() {
-      const q = query(
-        collection(db, "orders"),
-        where("email", "==", currentUser?.email)
-      );
-      const snapshot = await getDocs(q);
-      const orders = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      const pastOrders = orders.filter((order) => order.status === "completed");
-      const ready = orders.filter((order) => order.status === "ready");
-      const currentOrders = orders.filter(
-        (order) => order.status !== "completed" && order.status !== "ready"
-      );
-      setOldReciepts(pastOrders);
-      setReadyOrders(ready);
-      setCurrOrders(currentOrders);
-      unsubscribe = onSnapshot(collection(db, "orders"), (snapshot) => {
-        const updatedAll = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
-        const byUser = updatedAll.filter((o: any) => o.email === currentUser?.email);
-        const updatedReady = byUser.filter((o: any) => o.status === "ready");
-        const updatedCurrent = byUser.filter(
-          (o: any) => o.status !== "completed" && o.status !== "ready"
+      if (!currentUser?.email) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const q = query(
+          collection(db, "orders"),
+          where("email", "==", currentUser.email)
         );
-        setReadyOrders(updatedReady);
-        setCurrOrders(updatedCurrent);
-      });
-      console.log("Fetched user orders:", orders);
-      setLoading(false);
+        const snapshot = await getDocs(q);
+        const orders = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        const pastOrders = orders.filter((order) => order.status === "completed");
+        const ready = orders.filter((order) => order.status === "ready");
+        const currentOrders = orders.filter(
+          (order) => order.status !== "completed" && order.status !== "ready"
+        );
+        setOldReciepts(pastOrders);
+        setReadyOrders(ready);
+        setCurrOrders(currentOrders);
+        setLoading(false);
+
+        unsubscribe = onSnapshot(collection(db, "orders"), (snapshot) => {
+          const updatedAll = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
+          const byUser = updatedAll.filter((o: any) => o.email === currentUser.email);
+          const updatedReady = byUser.filter((o: any) => o.status === "ready");
+          const updatedCurrent = byUser.filter(
+            (o: any) => o.status !== "completed" && o.status !== "ready"
+          );
+          setReadyOrders(updatedReady);
+          setCurrOrders(updatedCurrent);
+        });
+        console.log("Fetched user orders:", orders);
+      } catch (error) {
+        console.error("Error fetching orders:", error);
+        toast.error("Failed to fetch orders");
+        setLoading(false);
+      }
     }
     fetchOrders();
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [currentUser?.email, userLoggedIn]);
   return (
     <div className="container mx-auto px-4 py-8">

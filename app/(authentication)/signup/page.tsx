@@ -16,6 +16,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { doCreateUserWithEmailAndPassword } from "@/lib/auth";
 import { FirebaseError } from "firebase/app";
+import WithGoogle from "@/components/ui/with-google";
 export default function SignupPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -138,6 +139,8 @@ export default function SignupPage() {
         <Button onClick={handleSubmit} className="w-full" disabled={isLoading}>
           {isLoading ? "Creating account..." : "Sign Up"}
         </Button>
+        <WithGoogle signIn={false}/>
+        
       </CardFooter>
     </Card>
   );

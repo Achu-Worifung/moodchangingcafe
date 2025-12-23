@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { toast } from "sonner";
-
+import WithGoogle from "@/components/ui/with-google";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useState } from "react";
@@ -120,6 +120,7 @@ export default function SignInPage() {
         <Button onClick={handleSubmit} className="w-full" disabled={isLoading}>
           {isLoading ? "Logging in..." : "Login"}
         </Button>
+        <WithGoogle signIn={true} />
       </CardFooter>
     </Card>
   );

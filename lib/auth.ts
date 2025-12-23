@@ -3,6 +3,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   updatePassword,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 
@@ -56,6 +58,32 @@ export const doSetUserRole = async (uid: string, role: UserRole) => {
     throw err;
   }
 };
+
+export const doWithGoogle = async () => {
+  const provider = new GoogleAuthProvider();
+  try {
+    const result = await signInWithPopup(auth, provider);
+    const { uid } = result.user;
+    
+    // Create user profile in Firestore if it doesn't exist
+    const userDocRef = doc(db, "users", uid);
+    const userSnap = await getDoc(userDocRef);
+    if (!userSnap.exists()) {
+      await setDoc(userDocRef, {
+        email: result.user.email,
+        role: DEFAULT_ROLE,
+        createdAt: serverTimestamp(),
+        updatedAt: serverTimestamp(),
+      });
+    }
+    
+    return result;
+  } catch (err) {
+    console.error("doSignInWithGoogle error:", err);
+    throw err;
+  }
+};
+
 
 export const doGetUserRole = async (uid: string): Promise<UserRole> => {
   try {

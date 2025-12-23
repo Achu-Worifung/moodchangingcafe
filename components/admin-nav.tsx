@@ -39,14 +39,7 @@ export function AdminNavBar() {
               Orders
             </Link>
           </li>
-          <li>
-            <Link
-              href="/admin/users"
-              className="hover:underline underline-offset-2 "
-            >
-              Users
-            </Link>
-          </li>
+          
         </ul>
       </span>
       <div className={`sm:hidden w-full ${isOpen ? "block" : "h-0 hidden "} `} >
