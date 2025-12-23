@@ -10,14 +10,19 @@ export function Cart() {
   const checkCart = () => {
     try {
       const cart = localStorage.getItem("cart");
-      setHasItems(Boolean(cart));
+      if (!cart) {
+        setHasItems(false);
+        return;
+      }
+      const parsed = JSON.parse(cart);
+      const hasContent = Array.isArray(parsed) && parsed.length > 0;
+      setHasItems(hasContent);
     } catch {
       setHasItems(false);
     }
   };
 
   useEffect(() => {
-    // Initial check (client-only)
     checkCart();
 
     // Listen for changes from other tabs
