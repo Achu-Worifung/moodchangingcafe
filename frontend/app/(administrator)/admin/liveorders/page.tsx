@@ -63,9 +63,10 @@ export default function LiveOrdersPage() {
     };
   }, []);
   return (
-    <>
+    <div className="w-full flex flex-col flex-1 p-4 mt-14 h-full">
+      <h1 className="text-center text-2xl font-semibold mb-4">Live Orders</h1>
       <ShowOrderInfo show={showOrderInfo} data={selectedOrder} setShow={setShowOrderInfo} />
-      <Table>
+      <Table className="">
         <TableCaption>List of live orders.</TableCaption>
         <TableHeader>
           <TableRow>
@@ -89,6 +90,6 @@ export default function LiveOrdersPage() {
         </TableBody>
         
       </Table>
-    </>
+    </div>
   );
 }
