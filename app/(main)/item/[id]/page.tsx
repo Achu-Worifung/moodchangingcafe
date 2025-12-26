@@ -16,7 +16,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import {db,} from "@/lib/firebase";
 import { 
@@ -280,7 +279,7 @@ async function handlePurchase() {
               </Button>
             </span>
             <p className="text-lg mb-4">{item.description}</p>
-            <span className="w-full flex gap-4 mb-4">
+            <span className="w-full flex  mb-4">
               <Button
                 variant="outline"
                 className="mr-4 w-1/2 border-2"

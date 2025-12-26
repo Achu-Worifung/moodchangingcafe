@@ -22,7 +22,6 @@ import {
 	CardDescription,
 	CardContent,
 	CardFooter,
-	CardAction,
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import {
@@ -74,12 +73,12 @@ export default function Cartpage() {
 		readCart();
 
 		const onCartUpdated = () => readCart();
-		window.addEventListener("cart-updated", onCartUpdated);
+		// window.addEventListener("cart-updated", onCartUpdated);
 		window.addEventListener("storage", (e) => {
 			if (e.key === "cart") readCart();
 		});
 		return () => {
-			window.removeEventListener("cart-updated", onCartUpdated);
+			// window.removeEventListener("cart-updated", onCartUpdated);
 		};
 	}, []);
 
@@ -156,7 +155,7 @@ export default function Cartpage() {
 		return () => {
 			cancelled = true;
 		};
-	}, [cart]);
+	}, []);
 
 	const lineItems = useMemo(() => {
 		return cart.map((entry) => {
@@ -182,7 +181,7 @@ export default function Cartpage() {
 		setCart((prev) => {
 			const updated = prev.map((e) => (e.id === name ? { ...e, quantity: nextQty } : e));
 			localStorage.setItem("cart", JSON.stringify(updated));
-			window.dispatchEvent(new Event("cart-updated"));
+			// window.dispatchEvent(new Event("cart-updated"));
 			return updated;
 		});
 	}
@@ -191,7 +190,7 @@ export default function Cartpage() {
 		setCart((prev) => {
 			const updated = prev.filter((e) => e.id !== name);
 			localStorage.setItem("cart", JSON.stringify(updated));
-			window.dispatchEvent(new Event("cart-updated"));
+			// window.dispatchEvent(new Event("cart-updated"));
 			return updated;
 		});
 	}
@@ -258,7 +257,7 @@ export default function Cartpage() {
 			// Clear cart
 			setCart([]);
 			localStorage.removeItem("cart");
-			window.dispatchEvent(new Event("cart-updated"));
+			// window.dispatchEvent(new Event("cart-updated"));
 			router.push("/orders");
 		} catch (err) {
 			console.error("Purchase failed:", err);
