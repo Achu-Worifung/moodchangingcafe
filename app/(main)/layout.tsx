@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Navbar } from "@components/navbar";
+import { Analytics } from "@vercel/analytics/next"
 
 export const metadata: Metadata = {
   title: "Mood changing Cafe",
@@ -13,6 +14,7 @@ export default function RootLayout({
 }>) {
   return (
    <>
+   <Analytics />
    <Navbar />
    {children}
    </>
