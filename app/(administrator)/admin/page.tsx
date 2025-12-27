@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts";
 import { ShoppingCart, Package, TrendingUp, Plus } from "lucide-react";
 import Loading from "@/app/loading";
+import { CloseStore } from "@/components/ui/close-store";
 
 export default function AdminPage() {
   const router = useRouter();
@@ -130,6 +131,7 @@ export default function AdminPage() {
   return (
     <div className="container mx-auto px-4 py-8 w-full mt-14">
       <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+      <CloseStore />
 
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4 mb-8">
